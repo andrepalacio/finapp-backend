@@ -32,6 +32,10 @@ services:
     ports:
       - "8080:8080"
     env_file: .env
+    environment:
+      # Override host-based URLs with docker service names
+      DATABASE_URL: postgres://${DB_USER:-finapp}:${DB_PASSWORD:-finapp}@postgres:5432/${DB_NAME:-finapp_dev}?sslmode=disable
+      REDIS_URL: redis://redis:6379/0
     volumes:
       - .:/app
       - go_cache:/root/go/pkg/mod

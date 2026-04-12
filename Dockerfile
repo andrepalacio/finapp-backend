@@ -1,8 +1,8 @@
 # ── Stage: dev (hot reload with air) ─────────────────────────────────────────
-FROM golang:1.22-alpine AS dev
+FROM golang:1.25-alpine AS dev
 
 RUN apk add --no-cache git && \
-    go install github.com/air-verse/air@latest
+    go install github.com/air-verse/air@v1.52.3
 
 WORKDIR /app
 COPY go.mod go.sum ./
@@ -11,7 +11,7 @@ RUN go mod download
 CMD ["air"]
 
 # ── Stage: builder ────────────────────────────────────────────────────────────
-FROM golang:1.22-alpine AS builder
+FROM golang:1.25-alpine AS builder
 
 WORKDIR /app
 COPY go.mod go.sum ./
