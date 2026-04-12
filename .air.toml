@@ -1,0 +1,19 @@
+[build]
+  cmd = "go build -o ./tmp/server ./cmd/api"
+  bin = "./tmp/server"
+  include_ext = ["go"]
+  exclude_dir = ["tmp", "vendor", "db/migrations"]
+  delay = 1000
+
+[log]
+  time = false
+
+[color]
+  build = "yellow"
+  runner = "green"
+  watcher = "cyan"
+  app = ""
+  main = "magenta"
+
+[misc]
+  clean_on_exit = true
