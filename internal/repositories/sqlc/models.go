@@ -9,6 +9,56 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type Budget struct {
+	ID          uuid.UUID          `json:"id"`
+	WorkspaceID uuid.UUID          `json:"workspace_id"`
+	Year        int16              `json:"year"`
+	Month       int16              `json:"month"`
+	TotalLimit  float64            `json:"total_limit"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
+}
+
+type BudgetCategory struct {
+	BudgetID    uuid.UUID `json:"budget_id"`
+	CategoryID  uuid.UUID `json:"category_id"`
+	LimitAmount float64   `json:"limit_amount"`
+}
+
+type Category struct {
+	ID          uuid.UUID          `json:"id"`
+	WorkspaceID *uuid.UUID         `json:"workspace_id"`
+	Name        string             `json:"name"`
+	Icon        pgtype.Text        `json:"icon"`
+	Color       pgtype.Text        `json:"color"`
+	Type        string             `json:"type"`
+	IsSystem    bool               `json:"is_system"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+}
+
+type Transaction struct {
+	ID                uuid.UUID          `json:"id"`
+	WorkspaceID       uuid.UUID          `json:"workspace_id"`
+	UserID            uuid.UUID          `json:"user_id"`
+	CategoryID        *uuid.UUID         `json:"category_id"`
+	TransferID        *uuid.UUID         `json:"transfer_id"`
+	Type              string             `json:"type"`
+	TransferDirection pgtype.Text        `json:"transfer_direction"`
+	Amount            float64            `json:"amount"`
+	Description       pgtype.Text        `json:"description"`
+	Date              pgtype.Date        `json:"date"`
+	CreatedAt         pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt         pgtype.Timestamptz `json:"updated_at"`
+}
+
+type Transfer struct {
+	ID              uuid.UUID          `json:"id"`
+	FromWorkspaceID uuid.UUID          `json:"from_workspace_id"`
+	ToWorkspaceID   uuid.UUID          `json:"to_workspace_id"`
+	Note            pgtype.Text        `json:"note"`
+	CreatedAt       pgtype.Timestamptz `json:"created_at"`
+}
+
 type User struct {
 	ID           uuid.UUID          `json:"id"`
 	Email        string             `json:"email"`
@@ -24,6 +74,7 @@ type Workspace struct {
 	OwnerID   uuid.UUID          `json:"owner_id"`
 	CreatedAt pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+	Currency  string             `json:"currency"`
 }
 
 type WorkspaceMember struct {

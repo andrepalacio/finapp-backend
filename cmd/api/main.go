@@ -62,15 +62,27 @@ func main() {
 	defer redisClient.Close()
 
 	// Repositories
-	userRepo := repositories.NewUserRepository(pool)
+	userRepo        := repositories.NewUserRepository(pool)
+	workspaceRepo   := repositories.NewWorkspaceRepository(pool)
+	categoryRepo    := repositories.NewCategoryRepository(pool)
+	transactionRepo := repositories.NewTransactionRepository(pool)
+	budgetRepo      := repositories.NewBudgetRepository(pool)
 
 	// Services
-	authSvc := services.NewAuthService(userRepo, redisClient, jwtManager, bcryptCost)
-	userSvc := services.NewUserService(userRepo)
+	authSvc        := services.NewAuthService(userRepo, redisClient, jwtManager, bcryptCost)
+	userSvc        := services.NewUserService(userRepo)
+	workspaceSvc   := services.NewWorkspaceService(workspaceRepo)
+	categorySvc    := services.NewCategoryService(categoryRepo)
+	transactionSvc := services.NewTransactionService(transactionRepo)
+	budgetSvc      := services.NewBudgetService(budgetRepo)
 
 	// Handlers
-	authHandler := handlers.NewAuthHandler(authSvc)
-	userHandler := handlers.NewUserHandler(userSvc)
+	authHandler        := handlers.NewAuthHandler(authSvc)
+	userHandler        := handlers.NewUserHandler(userSvc)
+	workspaceHandler   := handlers.NewWorkspaceHandler(workspaceSvc)
+	categoryHandler    := handlers.NewCategoryHandler(categorySvc)
+	transactionHandler := handlers.NewTransactionHandler(transactionSvc)
+	budgetHandler      := handlers.NewBudgetHandler(budgetSvc)
 
 	// Router
 	if os.Getenv("ENV") == "production" {
@@ -103,6 +115,46 @@ func main() {
 		{
 			user.GET("/profile", userHandler.GetProfile)
 			user.PUT("/profile", userHandler.UpdateProfile)
+		}
+
+		authRequired := middleware.AuthMiddleware(jwtManager)
+		wsMW := middleware.WorkspaceMiddleware(workspaceRepo)
+
+		// Workspaces
+		ws := v1.Group("/workspaces", authRequired)
+		{
+			ws.POST("", workspaceHandler.Create)
+			ws.GET("", workspaceHandler.List)
+		}
+		wsMember := v1.Group("/workspaces/:workspace_id", authRequired, wsMW)
+		{
+			wsMember.GET("", workspaceHandler.Get)
+			wsMember.PUT("", workspaceHandler.Update)
+			wsMember.DELETE("", workspaceHandler.Delete)
+
+			// Categories
+			wsMember.GET("/categories", categoryHandler.List)
+			wsMember.POST("/categories", categoryHandler.Create)
+			wsMember.PUT("/categories/:category_id", categoryHandler.Update)
+			wsMember.DELETE("/categories/:category_id", categoryHandler.Delete)
+
+			// Transactions
+			wsMember.GET("/transactions", transactionHandler.List)
+			wsMember.POST("/transactions", transactionHandler.Create)
+			wsMember.POST("/transactions/transfer", transactionHandler.CreateTransfer)
+			wsMember.GET("/transactions/summary", transactionHandler.DailySummary)
+			wsMember.GET("/transactions/by-date/:date", transactionHandler.ListByDate)
+			wsMember.GET("/transactions/:transaction_id", transactionHandler.Get)
+			wsMember.PUT("/transactions/:transaction_id", transactionHandler.Update)
+			wsMember.DELETE("/transactions/:transaction_id", transactionHandler.Delete)
+
+			// Budgets
+			wsMember.GET("/budgets", budgetHandler.List)
+			wsMember.PUT("/budgets/:year/:month", budgetHandler.Upsert)
+			wsMember.GET("/budgets/:year/:month", budgetHandler.Get)
+			wsMember.DELETE("/budgets/:year/:month", budgetHandler.Delete)
+			wsMember.PUT("/budgets/:year/:month/categories/:category_id", budgetHandler.UpsertCategory)
+			wsMember.DELETE("/budgets/:year/:month/categories/:category_id", budgetHandler.DeleteCategory)
 		}
 	}
 

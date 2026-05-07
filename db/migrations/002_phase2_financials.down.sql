@@ -1,0 +1,6 @@
+DROP TABLE IF EXISTS budget_categories;
+DROP TABLE IF EXISTS budgets;
+DROP TABLE IF EXISTS transactions;
+DROP TABLE IF EXISTS transfers;
+DROP TABLE IF EXISTS categories;
+ALTER TABLE workspaces DROP COLUMN IF EXISTS currency;

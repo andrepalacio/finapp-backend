@@ -11,10 +11,41 @@ import (
 )
 
 type Querier interface {
+	AddWorkspaceMember(ctx context.Context, arg AddWorkspaceMemberParams) error
+	CountTransactions(ctx context.Context, arg CountTransactionsParams) (int64, error)
+	CreateCategory(ctx context.Context, arg CreateCategoryParams) (Category, error)
+	CreateTransaction(ctx context.Context, arg CreateTransactionParams) (Transaction, error)
+	CreateTransferRecord(ctx context.Context, arg CreateTransferRecordParams) (Transfer, error)
+	CreateTransferTransaction(ctx context.Context, arg CreateTransferTransactionParams) (Transaction, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
+	CreateWorkspace(ctx context.Context, arg CreateWorkspaceParams) (Workspace, error)
+	DeleteBudget(ctx context.Context, id uuid.UUID) error
+	DeleteBudgetCategory(ctx context.Context, arg DeleteBudgetCategoryParams) error
+	DeleteCategory(ctx context.Context, arg DeleteCategoryParams) error
+	DeleteTransaction(ctx context.Context, arg DeleteTransactionParams) error
+	DeleteWorkspace(ctx context.Context, id uuid.UUID) error
+	GetBudgetByID(ctx context.Context, id uuid.UUID) (Budget, error)
+	GetBudgetByYearMonth(ctx context.Context, arg GetBudgetByYearMonthParams) (Budget, error)
+	GetBudgetCategorySpending(ctx context.Context, arg GetBudgetCategorySpendingParams) ([]GetBudgetCategorySpendingRow, error)
+	GetCategoryByID(ctx context.Context, id uuid.UUID) (Category, error)
+	GetDailySummary(ctx context.Context, arg GetDailySummaryParams) ([]GetDailySummaryRow, error)
+	GetTransactionByID(ctx context.Context, id uuid.UUID) (Transaction, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByID(ctx context.Context, id uuid.UUID) (User, error)
+	GetWorkspaceByID(ctx context.Context, id uuid.UUID) (Workspace, error)
+	GetWorkspaceMember(ctx context.Context, arg GetWorkspaceMemberParams) (WorkspaceMember, error)
+	ListBudgetCategories(ctx context.Context, budgetID uuid.UUID) ([]ListBudgetCategoriesRow, error)
+	ListBudgets(ctx context.Context, workspaceID uuid.UUID) ([]Budget, error)
+	ListCategoriesForWorkspace(ctx context.Context, workspaceID *uuid.UUID) ([]Category, error)
+	ListTransactions(ctx context.Context, arg ListTransactionsParams) ([]Transaction, error)
+	ListTransactionsByDateCursor(ctx context.Context, arg ListTransactionsByDateCursorParams) ([]Transaction, error)
+	ListWorkspacesByUser(ctx context.Context, userID uuid.UUID) ([]Workspace, error)
+	UpdateCategory(ctx context.Context, arg UpdateCategoryParams) (Category, error)
+	UpdateTransaction(ctx context.Context, arg UpdateTransactionParams) (Transaction, error)
 	UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error)
+	UpdateWorkspace(ctx context.Context, arg UpdateWorkspaceParams) (Workspace, error)
+	UpsertBudget(ctx context.Context, arg UpsertBudgetParams) (Budget, error)
+	UpsertBudgetCategory(ctx context.Context, arg UpsertBudgetCategoryParams) error
 }
 
 var _ Querier = (*Queries)(nil)
