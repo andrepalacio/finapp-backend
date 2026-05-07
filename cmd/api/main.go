@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/andrespalacio/finapp-backend/internal/handlers"
@@ -11,11 +12,22 @@ import (
 	"github.com/andrespalacio/finapp-backend/internal/repositories"
 	"github.com/andrespalacio/finapp-backend/internal/services"
 	pkgauth "github.com/andrespalacio/finapp-backend/pkg/auth"
+	_ "github.com/andrespalacio/finapp-backend/api/swagger"
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 	"github.com/joho/godotenv"
 	"go.uber.org/zap"
 )
 
+// @title           FinApp API
+// @version         1.0
+// @description     API REST de finanzas personales
+// @host            localhost:8080
+// @BasePath        /api/v1
+// @securityDefinitions.apikey BearerAuth
+// @in              header
+// @name            Authorization
 func main() {
 	if err := godotenv.Load(); err != nil {
 		log.Println("no .env file found, using environment variables")
@@ -31,6 +43,7 @@ func main() {
 	}
 	accessExpiry := parseDuration(logger, "JWT_ACCESS_EXPIRY", "15m")
 	refreshExpiry := parseDuration(logger, "JWT_REFRESH_EXPIRY", "168h")
+	bcryptCost := parseInt(logger, "BCRYPT_COST", 10)
 	jwtManager := pkgauth.NewJWTManager(secret, accessExpiry, refreshExpiry)
 
 	// Database
@@ -52,10 +65,12 @@ func main() {
 	userRepo := repositories.NewUserRepository(pool)
 
 	// Services
-	authSvc := services.NewAuthService(userRepo, redisClient, jwtManager)
+	authSvc := services.NewAuthService(userRepo, redisClient, jwtManager, bcryptCost)
+	userSvc := services.NewUserService(userRepo)
 
 	// Handlers
 	authHandler := handlers.NewAuthHandler(authSvc)
+	userHandler := handlers.NewUserHandler(userSvc)
 
 	// Router
 	if os.Getenv("ENV") == "production" {
@@ -70,15 +85,24 @@ func main() {
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{"status": "ok"})
 	})
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	v1 := r.Group("/api/v1")
 	{
+		rateLimiter := middleware.RateLimitMiddleware(redisClient, 10, time.Minute)
+
 		auth := v1.Group("/auth")
 		{
-			auth.POST("/register", authHandler.Register)
-			auth.POST("/login", authHandler.Login)
+			auth.POST("/register", rateLimiter, authHandler.Register)
+			auth.POST("/login", rateLimiter, authHandler.Login)
 			auth.POST("/refresh", authHandler.Refresh)
 			auth.POST("/logout", authHandler.Logout)
+		}
+
+		user := v1.Group("/user", middleware.AuthMiddleware(jwtManager))
+		{
+			user.GET("/profile", userHandler.GetProfile)
+			user.PUT("/profile", userHandler.UpdateProfile)
 		}
 	}
 
@@ -110,6 +134,18 @@ func getEnv(key, fallback string) string {
 		return v
 	}
 	return fallback
+}
+
+func parseInt(logger *zap.Logger, key string, fallback int) int {
+	v := os.Getenv(key)
+	if v == "" {
+		return fallback
+	}
+	i, err := strconv.Atoi(v)
+	if err != nil {
+		logger.Fatal("invalid integer env var", zap.String("key", key), zap.Error(err))
+	}
+	return i
 }
 
 func parseDuration(logger *zap.Logger, key, fallback string) time.Duration {

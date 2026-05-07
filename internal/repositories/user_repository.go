@@ -65,6 +65,22 @@ func (r *UserRepository) GetByID(ctx context.Context, id uuid.UUID) (models.User
 	return toUserModel(row), nil
 }
 
+func (r *UserRepository) Update(ctx context.Context, userID uuid.UUID, name, email string) (models.User, error) {
+	row, err := r.q.UpdateUser(ctx, sqlc.UpdateUserParams{
+		ID:    userID,
+		Name:  name,
+		Email: email,
+	})
+	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			return models.User{}, apperror.ErrConflict
+		}
+		return models.User{}, apperror.Wrap(apperror.ErrInternal, err)
+	}
+	return toUserModel(row), nil
+}
+
 func toUserModel(row sqlc.User) models.User {
 	return models.User{
 		ID:           row.ID,

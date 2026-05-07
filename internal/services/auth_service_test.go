@@ -58,6 +58,24 @@ func (m *mockUserRepo) GetByID(_ context.Context, id uuid.UUID) (models.User, er
 	return models.User{}, apperror.ErrNotFound
 }
 
+func (m *mockUserRepo) Update(_ context.Context, userID uuid.UUID, name, email string) (models.User, error) {
+	u, ok := m.users[email]
+	if ok && u.ID != userID {
+		return models.User{}, apperror.ErrConflict
+	}
+	for i, user := range m.users {
+		if user.ID == userID {
+			user.Name = name
+			user.Email = email
+			m.users[i] = user
+			delete(m.users, i)
+			m.users[email] = user
+			return user, nil
+		}
+	}
+	return models.User{}, apperror.ErrNotFound
+}
+
 // ── Test helpers ──────────────────────────────────────────────────────────────
 
 func newTestService(t *testing.T) (*services.AuthService, *mockUserRepo) {
@@ -69,7 +87,7 @@ func newTestService(t *testing.T) (*services.AuthService, *mockUserRepo) {
 	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
 	jwt := pkgauth.NewJWTManager("test-secret-that-is-long-enough-32chars!!", 15*time.Minute, 7*24*time.Hour)
 	repo := newMockRepo()
-	return services.NewAuthService(repo, rdb, jwt), repo
+	return services.NewAuthService(repo, rdb, jwt, bcrypt.DefaultCost), repo
 }
 
 // ── Register ──────────────────────────────────────────────────────────────────
@@ -89,6 +107,11 @@ func TestAuthService_Register(t *testing.T) {
 			params:  services.RegisterParams{Email: "user@example.com", Password: "short", Name: "Test User"},
 			wantErr: apperror.ErrInvalidInput,
 		},
+		{
+			name:    "password too long (bcrypt 72-byte truncation guard)",
+			params:  services.RegisterParams{Email: "user@example.com", Password: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", Name: "Test User"},
+			wantErr: apperror.ErrInvalidInput,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -103,6 +126,20 @@ func TestAuthService_Register(t *testing.T) {
 			assert.NotEmpty(t, pair.RefreshToken)
 		})
 	}
+}
+
+func TestAuthService_Register_EmailNormalized(t *testing.T) {
+	svc, _ := newTestService(t)
+
+	_, err := svc.Register(context.Background(), services.RegisterParams{
+		Email: "USER@Example.com", Password: "password123", Name: "User",
+	})
+	require.NoError(t, err)
+
+	_, err = svc.Login(context.Background(), services.LoginParams{
+		Email: "user@example.com", Password: "password123",
+	})
+	assert.NoError(t, err, "login with lowercase of originally-uppercase email must succeed")
 }
 
 func TestAuthService_Register_DuplicateEmail(t *testing.T) {

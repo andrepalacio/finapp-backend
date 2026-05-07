@@ -10,7 +10,10 @@ import (
 	"github.com/google/uuid"
 )
 
-const userIDKey = "userID"
+const (
+	userIDKey        = "userID"
+	UserIDContextKey = userIDKey
+)
 
 func AuthMiddleware(jwt *pkgauth.JWTManager) gin.HandlerFunc {
 	return func(c *gin.Context) {

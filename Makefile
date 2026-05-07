@@ -40,4 +40,4 @@ lint:
 
 # ── Swagger / OpenAPI ─────────────────────────────────────────────────────────
 swagger:
-	swag init -g cmd/api/main.go -o api/swagger
+	$(shell go env GOPATH)/bin/swag init -g cmd/api/main.go -o api/swagger

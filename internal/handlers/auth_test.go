@@ -59,6 +59,23 @@ func (r *inMemoryUserRepo) GetByID(_ context.Context, id uuid.UUID) (models.User
 	return models.User{}, apperror.ErrNotFound
 }
 
+func (r *inMemoryUserRepo) Update(_ context.Context, userID uuid.UUID, name, email string) (models.User, error) {
+	u, ok := r.users[email]
+	if ok && u.ID != userID {
+		return models.User{}, apperror.ErrConflict
+	}
+	for key, user := range r.users {
+		if user.ID == userID {
+			user.Name = name
+			user.Email = email
+			delete(r.users, key)
+			r.users[email] = user
+			return user, nil
+		}
+	}
+	return models.User{}, apperror.ErrNotFound
+}
+
 // ── Test helpers ──────────────────────────────────────────────────────────────
 
 func setupRouter(t *testing.T) *gin.Engine {
@@ -71,7 +88,7 @@ func setupRouter(t *testing.T) *gin.Engine {
 
 	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
 	jwt := pkgauth.NewJWTManager("test-secret-that-is-long-enough-32chars!!", 15*time.Minute, 7*24*time.Hour)
-	svc := services.NewAuthService(newInMemoryRepo(), rdb, jwt)
+	svc := services.NewAuthService(newInMemoryRepo(), rdb, jwt, 10)
 	h := handlers.NewAuthHandler(svc)
 
 	r := gin.New()

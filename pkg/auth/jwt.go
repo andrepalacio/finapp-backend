@@ -26,6 +26,9 @@ type JWTManager struct {
 }
 
 func NewJWTManager(secret string, accessExpiry, refreshExpiry time.Duration) *JWTManager {
+	if len(secret) < 32 {
+		panic("JWT secret must be at least 32 characters")
+	}
 	return &JWTManager{
 		secret:        []byte(secret),
 		accessExpiry:  accessExpiry,
@@ -79,7 +82,7 @@ func (m *JWTManager) validate(tokenStr, expectedType string) (*Claims, error) {
 		return m.secret, nil
 	})
 	if err != nil || !token.Valid {
-		return nil, fmt.Errorf("invalid token")
+		return nil, fmt.Errorf("invalid token: %w", err)
 	}
 	claims, ok := token.Claims.(*Claims)
 	if !ok || claims.TokenType != expectedType {

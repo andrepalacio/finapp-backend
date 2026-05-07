@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/andrespalacio/finapp-backend/internal/models"
 	"github.com/andrespalacio/finapp-backend/internal/repositories"
@@ -15,18 +16,20 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// UserRepository is the interface the auth service requires.
+// UserRepository is the interface shared by auth and user services.
 // The concrete implementation lives in internal/repositories.
 type UserRepository interface {
 	Create(ctx context.Context, params repositories.CreateUserParams) (models.User, error)
 	GetByEmail(ctx context.Context, email string) (models.User, error)
 	GetByID(ctx context.Context, id uuid.UUID) (models.User, error)
+	Update(ctx context.Context, userID uuid.UUID, name, email string) (models.User, error)
 }
 
 type AuthService struct {
-	repo  UserRepository
-	redis *redis.Client
-	jwt   *pkgauth.JWTManager
+	repo       UserRepository
+	redis      *redis.Client
+	jwt        *pkgauth.JWTManager
+	bcryptCost int
 }
 
 type RegisterParams struct {
@@ -40,16 +43,19 @@ type LoginParams struct {
 	Password string
 }
 
-func NewAuthService(repo UserRepository, rdb *redis.Client, jwt *pkgauth.JWTManager) *AuthService {
-	return &AuthService{repo: repo, redis: rdb, jwt: jwt}
+func NewAuthService(repo UserRepository, rdb *redis.Client, jwt *pkgauth.JWTManager, bcryptCost int) *AuthService {
+	return &AuthService{repo: repo, redis: rdb, jwt: jwt, bcryptCost: bcryptCost}
 }
 
 func (s *AuthService) Register(ctx context.Context, p RegisterParams) (pkgauth.TokenPair, error) {
-	if len(p.Password) < 8 {
+	// bcrypt silently truncates at 72 bytes — enforce the limit explicitly.
+	if len(p.Password) < 8 || len(p.Password) > 72 {
 		return pkgauth.TokenPair{}, apperror.ErrInvalidInput
 	}
 
-	hash, err := bcrypt.GenerateFromPassword([]byte(p.Password), bcrypt.DefaultCost)
+	p.Email = strings.ToLower(p.Email)
+
+	hash, err := bcrypt.GenerateFromPassword([]byte(p.Password), s.bcryptCost)
 	if err != nil {
 		return pkgauth.TokenPair{}, apperror.Wrap(apperror.ErrInternal, err)
 	}
@@ -67,6 +73,8 @@ func (s *AuthService) Register(ctx context.Context, p RegisterParams) (pkgauth.T
 }
 
 func (s *AuthService) Login(ctx context.Context, p LoginParams) (pkgauth.TokenPair, error) {
+	p.Email = strings.ToLower(p.Email)
+
 	user, err := s.repo.GetByEmail(ctx, p.Email)
 	if err != nil {
 		if errors.Is(err, apperror.ErrNotFound) {
@@ -88,19 +96,19 @@ func (s *AuthService) Refresh(ctx context.Context, refreshToken string) (pkgauth
 		return pkgauth.TokenPair{}, apperror.ErrUnauthorized
 	}
 
+	// GetDel atomically reads and deletes — prevents TOCTOU races where two concurrent
+	// requests with the same token both pass a separate GET check.
 	key := refreshKey(refreshToken)
-	stored, err := s.redis.Get(ctx, key).Result()
+	stored, err := s.redis.GetDel(ctx, key).Result()
 	if err != nil || stored != claims.UserID.String() {
 		return pkgauth.TokenPair{}, apperror.ErrUnauthorized
 	}
-
-	s.redis.Del(ctx, key)
 
 	return s.issueTokens(ctx, claims.UserID)
 }
 
 func (s *AuthService) Logout(ctx context.Context, refreshToken string) error {
-	s.redis.Del(ctx, refreshKey(refreshToken))
+	s.redis.Del(ctx, refreshKey(refreshToken)) //nolint:errcheck
 	return nil
 }
 

@@ -36,6 +36,16 @@ type tokenResponse struct {
 	RefreshToken string `json:"refresh_token"`
 }
 
+// Register godoc
+// @Summary      Registrar usuario
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        body body registerRequest true "Datos de registro"
+// @Success      201  {object}  tokenResponse
+// @Failure      400  {object}  map[string]string
+// @Failure      409  {object}  map[string]string
+// @Router       /auth/register [post]
 func (h *AuthHandler) Register(c *gin.Context) {
 	var req registerRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -56,6 +66,16 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	response.Created(c, tokenResponse{AccessToken: pair.AccessToken, RefreshToken: pair.RefreshToken})
 }
 
+// Login godoc
+// @Summary      Iniciar sesion
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        body body loginRequest true "Credenciales"
+// @Success      200  {object}  tokenResponse
+// @Failure      400  {object}  map[string]string
+// @Failure      401  {object}  map[string]string
+// @Router       /auth/login [post]
 func (h *AuthHandler) Login(c *gin.Context) {
 	var req loginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -75,6 +95,16 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	response.OK(c, tokenResponse{AccessToken: pair.AccessToken, RefreshToken: pair.RefreshToken})
 }
 
+// Refresh godoc
+// @Summary      Renovar tokens
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        body body refreshRequest true "Refresh token"
+// @Success      200  {object}  tokenResponse
+// @Failure      400  {object}  map[string]string
+// @Failure      401  {object}  map[string]string
+// @Router       /auth/refresh [post]
 func (h *AuthHandler) Refresh(c *gin.Context) {
 	var req refreshRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -91,6 +121,16 @@ func (h *AuthHandler) Refresh(c *gin.Context) {
 	response.OK(c, tokenResponse{AccessToken: pair.AccessToken, RefreshToken: pair.RefreshToken})
 }
 
+// Logout godoc
+// @Summary      Cerrar sesion
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        body body refreshRequest true "Refresh token a invalidar"
+// @Success      204  "Sin contenido"
+// @Failure      400  {object}  map[string]string
+// @Security     BearerAuth
+// @Router       /auth/logout [post]
 func (h *AuthHandler) Logout(c *gin.Context) {
 	var req refreshRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
