@@ -36,6 +36,51 @@ type Category struct {
 	CreatedAt   pgtype.Timestamptz `json:"created_at"`
 }
 
+type Debt struct {
+	ID               uuid.UUID          `json:"id"`
+	WorkspaceID      uuid.UUID          `json:"workspace_id"`
+	Name             string             `json:"name"`
+	Lender           pgtype.Text        `json:"lender"`
+	Principal        float64            `json:"principal"`
+	Rate             float64            `json:"rate"`
+	RateType         string             `json:"rate_type"`
+	Installments     int32              `json:"installments"`
+	FirstPaymentDate pgtype.Date        `json:"first_payment_date"`
+	Notes            pgtype.Text        `json:"notes"`
+	CreatedAt        pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt        pgtype.Timestamptz `json:"updated_at"`
+}
+
+type DebtPayment struct {
+	ID        uuid.UUID          `json:"id"`
+	DebtID    uuid.UUID          `json:"debt_id"`
+	Period    int32              `json:"period"`
+	Amount    float64            `json:"amount"`
+	PaidAt    pgtype.Date        `json:"paid_at"`
+	Notes     pgtype.Text        `json:"notes"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+}
+
+type SavingsContribution struct {
+	ID            uuid.UUID          `json:"id"`
+	GoalID        uuid.UUID          `json:"goal_id"`
+	Amount        float64            `json:"amount"`
+	ContributedAt pgtype.Date        `json:"contributed_at"`
+	Notes         pgtype.Text        `json:"notes"`
+	CreatedAt     pgtype.Timestamptz `json:"created_at"`
+}
+
+type SavingsGoal struct {
+	ID           uuid.UUID          `json:"id"`
+	WorkspaceID  uuid.UUID          `json:"workspace_id"`
+	Name         string             `json:"name"`
+	TargetAmount float64            `json:"target_amount"`
+	Deadline     pgtype.Date        `json:"deadline"`
+	Notes        pgtype.Text        `json:"notes"`
+	CreatedAt    pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt    pgtype.Timestamptz `json:"updated_at"`
+}
+
 type Transaction struct {
 	ID                uuid.UUID          `json:"id"`
 	WorkspaceID       uuid.UUID          `json:"workspace_id"`
@@ -75,6 +120,18 @@ type Workspace struct {
 	CreatedAt pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
 	Currency  string             `json:"currency"`
+}
+
+type WorkspaceInvitation struct {
+	ID          uuid.UUID          `json:"id"`
+	WorkspaceID uuid.UUID          `json:"workspace_id"`
+	Email       string             `json:"email"`
+	Role        string             `json:"role"`
+	Token       uuid.UUID          `json:"token"`
+	Status      string             `json:"status"`
+	InvitedBy   uuid.UUID          `json:"invited_by"`
+	ExpiresAt   pgtype.Timestamptz `json:"expires_at"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
 }
 
 type WorkspaceMember struct {

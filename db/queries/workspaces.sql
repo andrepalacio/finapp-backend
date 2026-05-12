@@ -26,3 +26,16 @@ WHERE id = $1 RETURNING *;
 
 -- name: DeleteWorkspace :exec
 DELETE FROM workspaces WHERE id = $1;
+
+-- name: ListWorkspaceMembers :many
+SELECT wm.workspace_id, wm.user_id, wm.role, wm.joined_at, u.name, u.email
+FROM workspace_members wm
+JOIN users u ON u.id = wm.user_id
+WHERE wm.workspace_id = $1
+ORDER BY wm.joined_at ASC;
+
+-- name: RemoveWorkspaceMember :exec
+DELETE FROM workspace_members WHERE workspace_id = $1 AND user_id = $2;
+
+-- name: UpdateMemberRole :exec
+UPDATE workspace_members SET role = $3 WHERE workspace_id = $1 AND user_id = $2;

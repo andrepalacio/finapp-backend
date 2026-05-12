@@ -116,6 +116,48 @@ func (r *WorkspaceRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	return r.q.DeleteWorkspace(ctx, id)
 }
 
+func (r *WorkspaceRepository) ListMembers(ctx context.Context, workspaceID uuid.UUID) ([]models.WorkspaceMemberWithUser, error) {
+	rows, err := r.q.ListWorkspaceMembers(ctx, workspaceID)
+	if err != nil {
+		return nil, apperror.Wrap(apperror.ErrInternal, err)
+	}
+	out := make([]models.WorkspaceMemberWithUser, len(rows))
+	for i, row := range rows {
+		out[i] = models.WorkspaceMemberWithUser{
+			WorkspaceID: row.WorkspaceID,
+			UserID:      row.UserID,
+			Role:        row.Role,
+			JoinedAt:    row.JoinedAt.Time,
+			Name:        row.Name,
+			Email:       row.Email,
+		}
+	}
+	return out, nil
+}
+
+func (r *WorkspaceRepository) RemoveMember(ctx context.Context, workspaceID, userID uuid.UUID) error {
+	err := r.q.RemoveWorkspaceMember(ctx, sqlc.RemoveWorkspaceMemberParams{
+		WorkspaceID: workspaceID,
+		UserID:      userID,
+	})
+	if err != nil {
+		return apperror.Wrap(apperror.ErrInternal, err)
+	}
+	return nil
+}
+
+func (r *WorkspaceRepository) UpdateMemberRole(ctx context.Context, workspaceID, userID uuid.UUID, role string) error {
+	err := r.q.UpdateMemberRole(ctx, sqlc.UpdateMemberRoleParams{
+		WorkspaceID: workspaceID,
+		UserID:      userID,
+		Role:        role,
+	})
+	if err != nil {
+		return apperror.Wrap(apperror.ErrInternal, err)
+	}
+	return nil
+}
+
 func toWorkspaceModel(row sqlc.Workspace) models.Workspace {
 	return models.Workspace{
 		ID:        row.ID,

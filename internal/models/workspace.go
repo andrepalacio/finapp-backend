@@ -14,3 +14,4 @@ type Workspace struct {
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }
+

@@ -7,6 +7,18 @@ definitions:
       name:
         type: string
     type: object
+  handlers.addContributionRequest:
+    properties:
+      amount:
+        type: number
+      contributed_at:
+        type: string
+      notes:
+        type: string
+    required:
+    - amount
+    - contributed_at
+    type: object
   handlers.createCategoryRequest:
     properties:
       color:
@@ -24,6 +36,47 @@ definitions:
     required:
     - name
     - type
+    type: object
+  handlers.createDebtRequest:
+    properties:
+      first_payment_date:
+        type: string
+      installments:
+        minimum: 1
+        type: integer
+      lender:
+        type: string
+      name:
+        type: string
+      notes:
+        type: string
+      principal:
+        type: number
+      rate:
+        minimum: 0
+        type: number
+      rate_type:
+        type: string
+    required:
+    - first_payment_date
+    - installments
+    - name
+    - principal
+    - rate_type
+    type: object
+  handlers.createSavingsGoalRequest:
+    properties:
+      deadline:
+        type: string
+      name:
+        type: string
+      notes:
+        type: string
+      target_amount:
+        type: number
+    required:
+    - name
+    - target_amount
     type: object
   handlers.createTransactionRequest:
     properties:
@@ -81,6 +134,22 @@ definitions:
     - email
     - password
     type: object
+  handlers.recordPaymentRequest:
+    properties:
+      amount:
+        type: number
+      notes:
+        type: string
+      paid_at:
+        type: string
+      period:
+        minimum: 1
+        type: integer
+    required:
+    - amount
+    - paid_at
+    - period
+    type: object
   handlers.refreshRequest:
     properties:
       refresh_token:
@@ -124,6 +193,59 @@ definitions:
         - both
         type: string
     type: object
+  handlers.updateDebtRequest:
+    properties:
+      first_payment_date:
+        type: string
+      installments:
+        minimum: 1
+        type: integer
+      lender:
+        type: string
+      name:
+        type: string
+      notes:
+        type: string
+      principal:
+        type: number
+      rate:
+        minimum: 0
+        type: number
+      rate_type:
+        type: string
+    required:
+    - first_payment_date
+    - installments
+    - name
+    - principal
+    - rate_type
+    type: object
+  handlers.updatePaymentRequest:
+    properties:
+      amount:
+        type: number
+      notes:
+        type: string
+      paid_at:
+        type: string
+    required:
+    - amount
+    - paid_at
+    type: object
+  handlers.updateSavingsGoalRequest:
+    properties:
+      deadline:
+        type: string
+      name:
+        type: string
+      notes:
+        type: string
+      target_amount:
+        type: number
+    required:
+    - name
+    - target_amount
+    type: object
   handlers.updateTransactionRequest:
     properties:
       amount:
@@ -162,6 +284,105 @@ definitions:
         type: number
     required:
     - total_limit
+    type: object
+  models.Debt:
+    properties:
+      created_at:
+        type: string
+      first_payment_date:
+        type: string
+      id:
+        type: string
+      installments:
+        type: integer
+      lender:
+        type: string
+      name:
+        type: string
+      notes:
+        type: string
+      principal:
+        type: number
+      rate:
+        type: number
+      rate_type:
+        type: string
+      updated_at:
+        type: string
+      workspace_id:
+        type: string
+    type: object
+  models.DebtPayment:
+    properties:
+      amount:
+        type: number
+      created_at:
+        type: string
+      debt_id:
+        type: string
+      id:
+        type: string
+      notes:
+        type: string
+      paid_at:
+        type: string
+      period:
+        type: integer
+    type: object
+  models.DebtScheduleInstallment:
+    properties:
+      balance:
+        type: number
+      due_date:
+        type: string
+      interest:
+        type: number
+      paid_amount:
+        type: number
+      paid_at:
+        type: string
+      payment:
+        type: number
+      period:
+        type: integer
+      principal:
+        type: number
+      status:
+        type: string
+    type: object
+  models.SavingsContribution:
+    properties:
+      amount:
+        type: number
+      contributed_at:
+        type: string
+      created_at:
+        type: string
+      goal_id:
+        type: string
+      id:
+        type: string
+      notes:
+        type: string
+    type: object
+  models.SavingsGoal:
+    properties:
+      created_at:
+        type: string
+      deadline:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      notes:
+        type: string
+      target_amount:
+        type: number
+      updated_at:
+        type: string
+      workspace_id:
+        type: string
     type: object
   services.BudgetCategoryInput:
     properties:
@@ -259,6 +480,31 @@ definitions:
         type: number
       transaction_count:
         type: integer
+    type: object
+  services.SavingsGoalProgress:
+    properties:
+      created_at:
+        type: string
+      deadline:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      notes:
+        type: string
+      progress_pct:
+        type: number
+      remaining:
+        type: number
+      target_amount:
+        type: number
+      total_contributed:
+        type: number
+      updated_at:
+        type: string
+      workspace_id:
+        type: string
     type: object
   services.TransactionListResult:
     properties:
@@ -979,6 +1225,504 @@ paths:
       summary: Update category
       tags:
       - categories
+  /workspaces/{workspace_id}/debts:
+    get:
+      parameters:
+      - description: Workspace ID
+        in: path
+        name: workspace_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Debt'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: List debts
+      tags:
+      - debts
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Workspace ID
+        in: path
+        name: workspace_id
+        required: true
+        type: string
+      - description: Debt data
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.createDebtRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.Debt'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create debt
+      tags:
+      - debts
+  /workspaces/{workspace_id}/debts/{debt_id}:
+    delete:
+      parameters:
+      - description: Workspace ID
+        in: path
+        name: workspace_id
+        required: true
+        type: string
+      - description: Debt ID
+        in: path
+        name: debt_id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+      security:
+      - BearerAuth: []
+      summary: Delete debt
+      tags:
+      - debts
+    get:
+      parameters:
+      - description: Workspace ID
+        in: path
+        name: workspace_id
+        required: true
+        type: string
+      - description: Debt ID
+        in: path
+        name: debt_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Debt'
+      security:
+      - BearerAuth: []
+      summary: Get debt
+      tags:
+      - debts
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Workspace ID
+        in: path
+        name: workspace_id
+        required: true
+        type: string
+      - description: Debt ID
+        in: path
+        name: debt_id
+        required: true
+        type: string
+      - description: Debt data
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.updateDebtRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Debt'
+      security:
+      - BearerAuth: []
+      summary: Update debt
+      tags:
+      - debts
+  /workspaces/{workspace_id}/debts/{debt_id}/payments:
+    get:
+      parameters:
+      - description: Workspace ID
+        in: path
+        name: workspace_id
+        required: true
+        type: string
+      - description: Debt ID
+        in: path
+        name: debt_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.DebtPayment'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: List debt payments
+      tags:
+      - debts
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Workspace ID
+        in: path
+        name: workspace_id
+        required: true
+        type: string
+      - description: Debt ID
+        in: path
+        name: debt_id
+        required: true
+        type: string
+      - description: Payment data
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.recordPaymentRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.DebtPayment'
+      security:
+      - BearerAuth: []
+      summary: Record debt payment
+      tags:
+      - debts
+  /workspaces/{workspace_id}/debts/{debt_id}/payments/{payment_id}:
+    delete:
+      parameters:
+      - description: Workspace ID
+        in: path
+        name: workspace_id
+        required: true
+        type: string
+      - description: Debt ID
+        in: path
+        name: debt_id
+        required: true
+        type: string
+      - description: Payment ID
+        in: path
+        name: payment_id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+      security:
+      - BearerAuth: []
+      summary: Delete debt payment
+      tags:
+      - debts
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Workspace ID
+        in: path
+        name: workspace_id
+        required: true
+        type: string
+      - description: Debt ID
+        in: path
+        name: debt_id
+        required: true
+        type: string
+      - description: Payment ID
+        in: path
+        name: payment_id
+        required: true
+        type: string
+      - description: Payment data
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.updatePaymentRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.DebtPayment'
+      security:
+      - BearerAuth: []
+      summary: Update debt payment
+      tags:
+      - debts
+  /workspaces/{workspace_id}/debts/{debt_id}/schedule:
+    get:
+      parameters:
+      - description: Workspace ID
+        in: path
+        name: workspace_id
+        required: true
+        type: string
+      - description: Debt ID
+        in: path
+        name: debt_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.DebtScheduleInstallment'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: Get amortization schedule
+      tags:
+      - debts
+  /workspaces/{workspace_id}/savings-goals:
+    get:
+      parameters:
+      - description: Workspace ID
+        in: path
+        name: workspace_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.SavingsGoal'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: List savings goals
+      tags:
+      - savings
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Workspace ID
+        in: path
+        name: workspace_id
+        required: true
+        type: string
+      - description: Goal data
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.createSavingsGoalRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.SavingsGoal'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create savings goal
+      tags:
+      - savings
+  /workspaces/{workspace_id}/savings-goals/{goal_id}:
+    delete:
+      parameters:
+      - description: Workspace ID
+        in: path
+        name: workspace_id
+        required: true
+        type: string
+      - description: Goal ID
+        in: path
+        name: goal_id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+      security:
+      - BearerAuth: []
+      summary: Delete savings goal
+      tags:
+      - savings
+    get:
+      parameters:
+      - description: Workspace ID
+        in: path
+        name: workspace_id
+        required: true
+        type: string
+      - description: Goal ID
+        in: path
+        name: goal_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/services.SavingsGoalProgress'
+      security:
+      - BearerAuth: []
+      summary: Get savings goal with progress
+      tags:
+      - savings
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Workspace ID
+        in: path
+        name: workspace_id
+        required: true
+        type: string
+      - description: Goal ID
+        in: path
+        name: goal_id
+        required: true
+        type: string
+      - description: Goal data
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.updateSavingsGoalRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.SavingsGoal'
+      security:
+      - BearerAuth: []
+      summary: Update savings goal
+      tags:
+      - savings
+  /workspaces/{workspace_id}/savings-goals/{goal_id}/contributions:
+    get:
+      parameters:
+      - description: Workspace ID
+        in: path
+        name: workspace_id
+        required: true
+        type: string
+      - description: Goal ID
+        in: path
+        name: goal_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.SavingsContribution'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: List contributions for savings goal
+      tags:
+      - savings
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Workspace ID
+        in: path
+        name: workspace_id
+        required: true
+        type: string
+      - description: Goal ID
+        in: path
+        name: goal_id
+        required: true
+        type: string
+      - description: Contribution data
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.addContributionRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.SavingsContribution'
+      security:
+      - BearerAuth: []
+      summary: Add contribution to savings goal
+      tags:
+      - savings
+  /workspaces/{workspace_id}/savings-goals/{goal_id}/contributions/{contribution_id}:
+    delete:
+      parameters:
+      - description: Workspace ID
+        in: path
+        name: workspace_id
+        required: true
+        type: string
+      - description: Goal ID
+        in: path
+        name: goal_id
+        required: true
+        type: string
+      - description: Contribution ID
+        in: path
+        name: contribution_id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+      security:
+      - BearerAuth: []
+      summary: Delete contribution
+      tags:
+      - savings
   /workspaces/{workspace_id}/transactions:
     get:
       parameters:

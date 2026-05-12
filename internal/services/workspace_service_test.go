@@ -43,6 +43,15 @@ func (m *mockWorkspaceRepo) Update(ctx context.Context, id uuid.UUID, name, curr
 func (m *mockWorkspaceRepo) Delete(ctx context.Context, id uuid.UUID) error {
 	return m.deleteFn(ctx, id)
 }
+func (m *mockWorkspaceRepo) ListMembers(ctx context.Context, workspaceID uuid.UUID) ([]models.WorkspaceMemberWithUser, error) {
+	return nil, nil
+}
+func (m *mockWorkspaceRepo) RemoveMember(ctx context.Context, workspaceID, userID uuid.UUID) error {
+	return nil
+}
+func (m *mockWorkspaceRepo) UpdateMemberRole(ctx context.Context, workspaceID, userID uuid.UUID, role string) error {
+	return nil
+}
 
 func TestWorkspaceService_Create(t *testing.T) {
 	now := time.Now().UTC()

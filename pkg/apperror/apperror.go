@@ -29,6 +29,15 @@ func (e *AppError) Is(target error) bool {
 	return e.Code == t.Code
 }
 
+// WithMessage returns a new AppError with the same Code/StatusCode but a custom message.
+func WithMessage(base *AppError, msg string) *AppError {
+	return &AppError{
+		Code:       base.Code,
+		Message:    msg,
+		StatusCode: base.StatusCode,
+	}
+}
+
 // Wrap returns a new AppError with the same Code/StatusCode/Message but with a wrapped cause.
 func Wrap(base *AppError, err error) *AppError {
 	return &AppError{

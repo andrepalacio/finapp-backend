@@ -67,6 +67,9 @@ func main() {
 	categoryRepo    := repositories.NewCategoryRepository(pool)
 	transactionRepo := repositories.NewTransactionRepository(pool)
 	budgetRepo      := repositories.NewBudgetRepository(pool)
+	debtRepo        := repositories.NewDebtRepository(pool)
+	savingsRepo     := repositories.NewSavingsRepository(pool)
+	invitationRepo  := repositories.NewInvitationRepository(pool)
 
 	// Services
 	authSvc        := services.NewAuthService(userRepo, redisClient, jwtManager, bcryptCost)
@@ -75,6 +78,9 @@ func main() {
 	categorySvc    := services.NewCategoryService(categoryRepo)
 	transactionSvc := services.NewTransactionService(transactionRepo)
 	budgetSvc      := services.NewBudgetService(budgetRepo)
+	debtSvc        := services.NewDebtService(debtRepo)
+	savingsSvc     := services.NewSavingsService(savingsRepo)
+	invitationSvc  := services.NewInvitationService(invitationRepo, workspaceRepo, userRepo)
 
 	// Handlers
 	authHandler        := handlers.NewAuthHandler(authSvc)
@@ -83,6 +89,11 @@ func main() {
 	categoryHandler    := handlers.NewCategoryHandler(categorySvc)
 	transactionHandler := handlers.NewTransactionHandler(transactionSvc)
 	budgetHandler      := handlers.NewBudgetHandler(budgetSvc)
+	debtHandler        := handlers.NewDebtHandler(debtSvc)
+	savingsHandler     := handlers.NewSavingsHandler(savingsSvc)
+	invitationHandler  := handlers.NewInvitationHandler(invitationSvc)
+	importHandler      := handlers.NewImportHandler(transactionSvc, categorySvc)
+	alertHandler       := handlers.NewAlertHandler(budgetSvc)
 
 	// Router
 	if os.Getenv("ENV") == "production" {
@@ -120,6 +131,9 @@ func main() {
 		authRequired := middleware.AuthMiddleware(jwtManager)
 		wsMW := middleware.WorkspaceMiddleware(workspaceRepo)
 
+		// Invitation accept — auth required, no workspace middleware
+		v1.GET("/invitations/accept", authRequired, invitationHandler.Accept)
+
 		// Workspaces
 		ws := v1.Group("/workspaces", authRequired)
 		{
@@ -131,6 +145,19 @@ func main() {
 			wsMember.GET("", workspaceHandler.Get)
 			wsMember.PUT("", workspaceHandler.Update)
 			wsMember.DELETE("", workspaceHandler.Delete)
+
+			// Members
+			wsMember.GET("/members", workspaceHandler.ListMembers)
+			wsMember.PUT("/members/:user_id/role", workspaceHandler.UpdateMemberRole)
+			wsMember.DELETE("/members/:user_id", workspaceHandler.RemoveMember)
+
+			// Invitations
+			wsMember.GET("/invitations", invitationHandler.ListPending)
+			wsMember.POST("/invitations", invitationHandler.Send)
+			wsMember.DELETE("/invitations/:invitation_id", invitationHandler.Cancel)
+
+			// Alerts
+			wsMember.GET("/alerts", alertHandler.GetAlerts)
 
 			// Categories
 			wsMember.GET("/categories", categoryHandler.List)
@@ -147,6 +174,8 @@ func main() {
 			wsMember.GET("/transactions/:transaction_id", transactionHandler.Get)
 			wsMember.PUT("/transactions/:transaction_id", transactionHandler.Update)
 			wsMember.DELETE("/transactions/:transaction_id", transactionHandler.Delete)
+			wsMember.GET("/transactions/import/template", importHandler.Template)
+			wsMember.POST("/transactions/import", importHandler.Import)
 
 			// Budgets
 			wsMember.GET("/budgets", budgetHandler.List)
@@ -155,6 +184,28 @@ func main() {
 			wsMember.DELETE("/budgets/:year/:month", budgetHandler.Delete)
 			wsMember.PUT("/budgets/:year/:month/categories/:category_id", budgetHandler.UpsertCategory)
 			wsMember.DELETE("/budgets/:year/:month/categories/:category_id", budgetHandler.DeleteCategory)
+
+			// Debts
+			wsMember.GET("/debts", debtHandler.List)
+			wsMember.POST("/debts", debtHandler.Create)
+			wsMember.GET("/debts/:debt_id", debtHandler.Get)
+			wsMember.PUT("/debts/:debt_id", debtHandler.Update)
+			wsMember.DELETE("/debts/:debt_id", debtHandler.Delete)
+			wsMember.GET("/debts/:debt_id/schedule", debtHandler.GetSchedule)
+			wsMember.GET("/debts/:debt_id/payments", debtHandler.ListPayments)
+			wsMember.POST("/debts/:debt_id/payments", debtHandler.RecordPayment)
+			wsMember.PUT("/debts/:debt_id/payments/:payment_id", debtHandler.UpdatePayment)
+			wsMember.DELETE("/debts/:debt_id/payments/:payment_id", debtHandler.DeletePayment)
+
+			// Savings goals
+			wsMember.GET("/savings-goals", savingsHandler.List)
+			wsMember.POST("/savings-goals", savingsHandler.Create)
+			wsMember.GET("/savings-goals/:goal_id", savingsHandler.Get)
+			wsMember.PUT("/savings-goals/:goal_id", savingsHandler.Update)
+			wsMember.DELETE("/savings-goals/:goal_id", savingsHandler.Delete)
+			wsMember.GET("/savings-goals/:goal_id/contributions", savingsHandler.ListContributions)
+			wsMember.POST("/savings-goals/:goal_id/contributions", savingsHandler.AddContribution)
+			wsMember.DELETE("/savings-goals/:goal_id/contributions/:contribution_id", savingsHandler.DeleteContribution)
 		}
 	}
 

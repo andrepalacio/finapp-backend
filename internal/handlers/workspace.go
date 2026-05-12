@@ -17,6 +17,9 @@ type workspaceService interface {
 	ListByUser(ctx context.Context, userID uuid.UUID) ([]services.WorkspaceView, error)
 	Update(ctx context.Context, p services.UpdateWorkspaceParams) (services.WorkspaceView, error)
 	Delete(ctx context.Context, id, userID uuid.UUID) error
+	ListMembers(ctx context.Context, workspaceID uuid.UUID) ([]services.MemberView, error)
+	UpdateMemberRole(ctx context.Context, p services.UpdateMemberRoleParams) error
+	RemoveMember(ctx context.Context, workspaceID, targetID, requesterID uuid.UUID) error
 }
 
 type WorkspaceHandler struct {
@@ -146,6 +149,93 @@ func (h *WorkspaceHandler) Delete(c *gin.Context) {
 	userID := middleware.UserIDFromContext(c)
 
 	if err := h.svc.Delete(c.Request.Context(), wsID, userID); err != nil {
+		response.HandleError(c, err)
+		return
+	}
+	c.Status(http.StatusNoContent)
+}
+
+// @Summary     List workspace members
+// @Tags        workspaces
+// @Produce     json
+// @Security    BearerAuth
+// @Param       workspace_id path string true "Workspace ID"
+// @Success     200 {array} services.MemberView
+// @Router      /workspaces/{workspace_id}/members [get]
+func (h *WorkspaceHandler) ListMembers(c *gin.Context) {
+	wsID := middleware.WorkspaceIDFromContext(c)
+
+	members, err := h.svc.ListMembers(c.Request.Context(), wsID)
+	if err != nil {
+		response.HandleError(c, err)
+		return
+	}
+	response.OK(c, members)
+}
+
+type updateMemberRoleRequest struct {
+	Role string `json:"role" binding:"required"`
+}
+
+// @Summary     Update member role
+// @Tags        workspaces
+// @Accept      json
+// @Produce     json
+// @Security    BearerAuth
+// @Param       workspace_id path string true "Workspace ID"
+// @Param       user_id path string true "User ID"
+// @Param       body body updateMemberRoleRequest true "Role"
+// @Success     204
+// @Failure     400,403,404 {object} map[string]string
+// @Router      /workspaces/{workspace_id}/members/{user_id}/role [put]
+func (h *WorkspaceHandler) UpdateMemberRole(c *gin.Context) {
+	var req updateMemberRoleRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "INVALID_INPUT", err.Error())
+		return
+	}
+
+	targetID, err := uuid.Parse(c.Param("user_id"))
+	if err != nil {
+		response.BadRequest(c, "INVALID_INPUT", "invalid user_id")
+		return
+	}
+
+	wsID := middleware.WorkspaceIDFromContext(c)
+	userID := middleware.UserIDFromContext(c)
+
+	if err := h.svc.UpdateMemberRole(c.Request.Context(), services.UpdateMemberRoleParams{
+		WorkspaceID: wsID,
+		TargetID:    targetID,
+		RequesterID: userID,
+		Role:        req.Role,
+	}); err != nil {
+		response.HandleError(c, err)
+		return
+	}
+	c.Status(http.StatusNoContent)
+}
+
+// @Summary     Remove workspace member
+// @Tags        workspaces
+// @Produce     json
+// @Security    BearerAuth
+// @Param       workspace_id path string true "Workspace ID"
+// @Param       user_id path string true "User ID"
+// @Success     204
+// @Failure     403,404 {object} map[string]string
+// @Router      /workspaces/{workspace_id}/members/{user_id} [delete]
+func (h *WorkspaceHandler) RemoveMember(c *gin.Context) {
+	targetID, err := uuid.Parse(c.Param("user_id"))
+	if err != nil {
+		response.BadRequest(c, "INVALID_INPUT", "invalid user_id")
+		return
+	}
+
+	wsID := middleware.WorkspaceIDFromContext(c)
+	userID := middleware.UserIDFromContext(c)
+
+	if err := h.svc.RemoveMember(c.Request.Context(), wsID, targetID, userID); err != nil {
 		response.HandleError(c, err)
 		return
 	}

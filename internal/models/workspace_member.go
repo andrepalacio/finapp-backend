@@ -18,3 +18,12 @@ type WorkspaceMember struct {
 	Role        string
 	JoinedAt    time.Time
 }
+
+type WorkspaceMemberWithUser struct {
+	WorkspaceID uuid.UUID
+	UserID      uuid.UUID
+	Role        string
+	JoinedAt    time.Time
+	Name        string
+	Email       string
+}

@@ -30,3 +30,18 @@ func fromPgDate(d pgtype.Date) time.Time {
 	}
 	return d.Time
 }
+
+func toPgDatePtr(t *time.Time) pgtype.Date {
+	if t == nil {
+		return pgtype.Date{}
+	}
+	return pgtype.Date{Time: *t, Valid: true}
+}
+
+func fromPgDatePtr(d pgtype.Date) *time.Time {
+	if !d.Valid {
+		return nil
+	}
+	t := d.Time
+	return &t
+}

@@ -14,6 +14,11 @@ type Querier interface {
 	AddWorkspaceMember(ctx context.Context, arg AddWorkspaceMemberParams) error
 	CountTransactions(ctx context.Context, arg CountTransactionsParams) (int64, error)
 	CreateCategory(ctx context.Context, arg CreateCategoryParams) (Category, error)
+	CreateContribution(ctx context.Context, arg CreateContributionParams) (SavingsContribution, error)
+	CreateDebt(ctx context.Context, arg CreateDebtParams) (Debt, error)
+	CreateDebtPayment(ctx context.Context, arg CreateDebtPaymentParams) (DebtPayment, error)
+	CreateInvitation(ctx context.Context, arg CreateInvitationParams) (WorkspaceInvitation, error)
+	CreateSavingsGoal(ctx context.Context, arg CreateSavingsGoalParams) (SavingsGoal, error)
 	CreateTransaction(ctx context.Context, arg CreateTransactionParams) (Transaction, error)
 	CreateTransferRecord(ctx context.Context, arg CreateTransferRecordParams) (Transfer, error)
 	CreateTransferTransaction(ctx context.Context, arg CreateTransferTransactionParams) (Transaction, error)
@@ -22,13 +27,24 @@ type Querier interface {
 	DeleteBudget(ctx context.Context, id uuid.UUID) error
 	DeleteBudgetCategory(ctx context.Context, arg DeleteBudgetCategoryParams) error
 	DeleteCategory(ctx context.Context, arg DeleteCategoryParams) error
+	DeleteContribution(ctx context.Context, arg DeleteContributionParams) error
+	DeleteDebt(ctx context.Context, arg DeleteDebtParams) error
+	DeleteDebtPayment(ctx context.Context, arg DeleteDebtPaymentParams) error
+	DeleteSavingsGoal(ctx context.Context, arg DeleteSavingsGoalParams) error
 	DeleteTransaction(ctx context.Context, arg DeleteTransactionParams) error
 	DeleteWorkspace(ctx context.Context, id uuid.UUID) error
 	GetBudgetByID(ctx context.Context, id uuid.UUID) (Budget, error)
 	GetBudgetByYearMonth(ctx context.Context, arg GetBudgetByYearMonthParams) (Budget, error)
 	GetBudgetCategorySpending(ctx context.Context, arg GetBudgetCategorySpendingParams) ([]GetBudgetCategorySpendingRow, error)
 	GetCategoryByID(ctx context.Context, id uuid.UUID) (Category, error)
+	GetContribution(ctx context.Context, id uuid.UUID) (SavingsContribution, error)
 	GetDailySummary(ctx context.Context, arg GetDailySummaryParams) ([]GetDailySummaryRow, error)
+	GetDebtByID(ctx context.Context, id uuid.UUID) (Debt, error)
+	GetDebtPayment(ctx context.Context, id uuid.UUID) (DebtPayment, error)
+	GetInvitationByID(ctx context.Context, id uuid.UUID) (WorkspaceInvitation, error)
+	GetInvitationByToken(ctx context.Context, token uuid.UUID) (WorkspaceInvitation, error)
+	GetSavingsGoalByID(ctx context.Context, id uuid.UUID) (SavingsGoal, error)
+	GetTotalContributed(ctx context.Context, goalID uuid.UUID) (float64, error)
 	GetTransactionByID(ctx context.Context, id uuid.UUID) (Transaction, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByID(ctx context.Context, id uuid.UUID) (User, error)
@@ -37,10 +53,22 @@ type Querier interface {
 	ListBudgetCategories(ctx context.Context, budgetID uuid.UUID) ([]ListBudgetCategoriesRow, error)
 	ListBudgets(ctx context.Context, workspaceID uuid.UUID) ([]Budget, error)
 	ListCategoriesForWorkspace(ctx context.Context, workspaceID *uuid.UUID) ([]Category, error)
+	ListContributions(ctx context.Context, goalID uuid.UUID) ([]SavingsContribution, error)
+	ListDebtPayments(ctx context.Context, debtID uuid.UUID) ([]DebtPayment, error)
+	ListDebts(ctx context.Context, workspaceID uuid.UUID) ([]Debt, error)
+	ListPendingInvitations(ctx context.Context, workspaceID uuid.UUID) ([]WorkspaceInvitation, error)
+	ListSavingsGoals(ctx context.Context, workspaceID uuid.UUID) ([]SavingsGoal, error)
 	ListTransactions(ctx context.Context, arg ListTransactionsParams) ([]Transaction, error)
 	ListTransactionsByDateCursor(ctx context.Context, arg ListTransactionsByDateCursorParams) ([]Transaction, error)
+	ListWorkspaceMembers(ctx context.Context, workspaceID uuid.UUID) ([]ListWorkspaceMembersRow, error)
 	ListWorkspacesByUser(ctx context.Context, userID uuid.UUID) ([]Workspace, error)
+	RemoveWorkspaceMember(ctx context.Context, arg RemoveWorkspaceMemberParams) error
 	UpdateCategory(ctx context.Context, arg UpdateCategoryParams) (Category, error)
+	UpdateDebt(ctx context.Context, arg UpdateDebtParams) (Debt, error)
+	UpdateDebtPayment(ctx context.Context, arg UpdateDebtPaymentParams) (DebtPayment, error)
+	UpdateInvitationStatus(ctx context.Context, arg UpdateInvitationStatusParams) (WorkspaceInvitation, error)
+	UpdateMemberRole(ctx context.Context, arg UpdateMemberRoleParams) error
+	UpdateSavingsGoal(ctx context.Context, arg UpdateSavingsGoalParams) (SavingsGoal, error)
 	UpdateTransaction(ctx context.Context, arg UpdateTransactionParams) (Transaction, error)
 	UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error)
 	UpdateWorkspace(ctx context.Context, arg UpdateWorkspaceParams) (Workspace, error)

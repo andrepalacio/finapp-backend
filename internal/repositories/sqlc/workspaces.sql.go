@@ -9,6 +9,7 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const addWorkspaceMember = `-- name: AddWorkspaceMember :exec
@@ -102,6 +103,50 @@ func (q *Queries) GetWorkspaceMember(ctx context.Context, arg GetWorkspaceMember
 	return i, err
 }
 
+const listWorkspaceMembers = `-- name: ListWorkspaceMembers :many
+SELECT wm.workspace_id, wm.user_id, wm.role, wm.joined_at, u.name, u.email
+FROM workspace_members wm
+JOIN users u ON u.id = wm.user_id
+WHERE wm.workspace_id = $1
+ORDER BY wm.joined_at ASC
+`
+
+type ListWorkspaceMembersRow struct {
+	WorkspaceID uuid.UUID          `json:"workspace_id"`
+	UserID      uuid.UUID          `json:"user_id"`
+	Role        string             `json:"role"`
+	JoinedAt    pgtype.Timestamptz `json:"joined_at"`
+	Name        string             `json:"name"`
+	Email       string             `json:"email"`
+}
+
+func (q *Queries) ListWorkspaceMembers(ctx context.Context, workspaceID uuid.UUID) ([]ListWorkspaceMembersRow, error) {
+	rows, err := q.db.Query(ctx, listWorkspaceMembers, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListWorkspaceMembersRow{}
+	for rows.Next() {
+		var i ListWorkspaceMembersRow
+		if err := rows.Scan(
+			&i.WorkspaceID,
+			&i.UserID,
+			&i.Role,
+			&i.JoinedAt,
+			&i.Name,
+			&i.Email,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listWorkspacesByUser = `-- name: ListWorkspacesByUser :many
 SELECT w.id, w.name, w.owner_id, w.created_at, w.updated_at, w.currency FROM workspaces w
 JOIN workspace_members wm ON wm.workspace_id = w.id
@@ -134,6 +179,35 @@ func (q *Queries) ListWorkspacesByUser(ctx context.Context, userID uuid.UUID) ([
 		return nil, err
 	}
 	return items, nil
+}
+
+const removeWorkspaceMember = `-- name: RemoveWorkspaceMember :exec
+DELETE FROM workspace_members WHERE workspace_id = $1 AND user_id = $2
+`
+
+type RemoveWorkspaceMemberParams struct {
+	WorkspaceID uuid.UUID `json:"workspace_id"`
+	UserID      uuid.UUID `json:"user_id"`
+}
+
+func (q *Queries) RemoveWorkspaceMember(ctx context.Context, arg RemoveWorkspaceMemberParams) error {
+	_, err := q.db.Exec(ctx, removeWorkspaceMember, arg.WorkspaceID, arg.UserID)
+	return err
+}
+
+const updateMemberRole = `-- name: UpdateMemberRole :exec
+UPDATE workspace_members SET role = $3 WHERE workspace_id = $1 AND user_id = $2
+`
+
+type UpdateMemberRoleParams struct {
+	WorkspaceID uuid.UUID `json:"workspace_id"`
+	UserID      uuid.UUID `json:"user_id"`
+	Role        string    `json:"role"`
+}
+
+func (q *Queries) UpdateMemberRole(ctx context.Context, arg UpdateMemberRoleParams) error {
+	_, err := q.db.Exec(ctx, updateMemberRole, arg.WorkspaceID, arg.UserID, arg.Role)
+	return err
 }
 
 const updateWorkspace = `-- name: UpdateWorkspace :one

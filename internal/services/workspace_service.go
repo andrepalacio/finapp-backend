@@ -18,6 +18,9 @@ type WorkspaceRepository interface {
 	ListByUser(ctx context.Context, userID uuid.UUID) ([]models.Workspace, error)
 	Update(ctx context.Context, id uuid.UUID, name, currency string) (models.Workspace, error)
 	Delete(ctx context.Context, id uuid.UUID) error
+	ListMembers(ctx context.Context, workspaceID uuid.UUID) ([]models.WorkspaceMemberWithUser, error)
+	RemoveMember(ctx context.Context, workspaceID, userID uuid.UUID) error
+	UpdateMemberRole(ctx context.Context, workspaceID, userID uuid.UUID, role string) error
 }
 
 type WorkspaceService struct {
@@ -136,4 +139,72 @@ func (s *WorkspaceService) Delete(ctx context.Context, id, userID uuid.UUID) err
 		return apperror.ErrForbidden
 	}
 	return s.repo.Delete(ctx, id)
+}
+
+type MemberView struct {
+	UserID   uuid.UUID `json:"user_id"`
+	Role     string    `json:"role"`
+	JoinedAt string    `json:"joined_at"`
+	Name     string    `json:"name"`
+	Email    string    `json:"email"`
+}
+
+func (s *WorkspaceService) ListMembers(ctx context.Context, workspaceID uuid.UUID) ([]MemberView, error) {
+	members, err := s.repo.ListMembers(ctx, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]MemberView, len(members))
+	for i, m := range members {
+		out[i] = MemberView{
+			UserID:   m.UserID,
+			Role:     m.Role,
+			JoinedAt: m.JoinedAt.UTC().Format(time.RFC3339),
+			Name:     m.Name,
+			Email:    m.Email,
+		}
+	}
+	return out, nil
+}
+
+type UpdateMemberRoleParams struct {
+	WorkspaceID uuid.UUID
+	TargetID    uuid.UUID
+	RequesterID uuid.UUID
+	Role        string
+}
+
+func (s *WorkspaceService) UpdateMemberRole(ctx context.Context, p UpdateMemberRoleParams) error {
+	if p.Role != models.RoleAdmin && p.Role != models.RoleMember {
+		return apperror.ErrInvalidInput
+	}
+	ws, err := s.repo.GetByID(ctx, p.WorkspaceID)
+	if err != nil {
+		return err
+	}
+	if ws.OwnerID != p.RequesterID {
+		return apperror.ErrForbidden
+	}
+	if ws.OwnerID == p.TargetID {
+		return apperror.WithMessage(apperror.ErrForbidden, "cannot change owner role")
+	}
+	return s.repo.UpdateMemberRole(ctx, p.WorkspaceID, p.TargetID, p.Role)
+}
+
+func (s *WorkspaceService) RemoveMember(ctx context.Context, workspaceID, targetID, requesterID uuid.UUID) error {
+	ws, err := s.repo.GetByID(ctx, workspaceID)
+	if err != nil {
+		return err
+	}
+	if ws.OwnerID == targetID {
+		return apperror.WithMessage(apperror.ErrForbidden, "cannot remove owner")
+	}
+	if ws.OwnerID != requesterID {
+		// admins can remove members
+		member, err := s.repo.GetMember(ctx, workspaceID, requesterID)
+		if err != nil || member.Role != models.RoleAdmin {
+			return apperror.ErrForbidden
+		}
+	}
+	return s.repo.RemoveMember(ctx, workspaceID, targetID)
 }
