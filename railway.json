@@ -1,0 +1,10 @@
+{
+  "build": {
+    "builder": "docker"
+  },
+  "deploy": {
+    "startCommand": "/app/server",
+    "restartPolicyType": "on_failure",
+    "restartPolicyMaxRetries": 5
+  }
+}
