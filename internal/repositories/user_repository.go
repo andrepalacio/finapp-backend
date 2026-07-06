@@ -81,6 +81,25 @@ func (r *UserRepository) Update(ctx context.Context, userID uuid.UUID, name, ema
 	return toUserModel(row), nil
 }
 
+func (r *UserRepository) UpdatePassword(ctx context.Context, userID uuid.UUID, passwordHash string) (models.User, error) {
+	row, err := r.q.UpdateUserPassword(ctx, sqlc.UpdateUserPasswordParams{
+		ID:           userID,
+		PasswordHash: passwordHash,
+	})
+	if err != nil {
+		return models.User{}, apperror.Wrap(apperror.ErrInternal, err)
+	}
+	return toUserModel(row), nil
+}
+
+func (r *UserRepository) Delete(ctx context.Context, userID uuid.UUID) error {
+	err := r.q.DeleteUser(ctx, userID)
+	if err != nil {
+		return apperror.Wrap(apperror.ErrInternal, err)
+	}
+	return nil
+}
+
 func toUserModel(row sqlc.User) models.User {
 	return models.User{
 		ID:           row.ID,

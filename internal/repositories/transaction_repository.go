@@ -215,6 +215,39 @@ func (r *TransactionRepository) DailySummary(ctx context.Context, p DailySummary
 	return out, nil
 }
 
+type MonthSummaryParams struct {
+	WorkspaceID uuid.UUID
+	DateFrom    *time.Time
+	DateTo      *time.Time
+}
+
+type MonthSummaryResult struct {
+	IncomeTotal  float64
+	IncomeCount  int32
+	ExpenseTotal float64
+	ExpenseCount int32
+}
+
+func (r *TransactionRepository) MonthSummary(ctx context.Context, p MonthSummaryParams) (MonthSummaryResult, error) {
+	arg := sqlc.GetMonthSummaryParams{WorkspaceID: p.WorkspaceID}
+	if p.DateFrom != nil {
+		arg.DateFrom = toPgDate(*p.DateFrom)
+	}
+	if p.DateTo != nil {
+		arg.DateTo = toPgDate(*p.DateTo)
+	}
+	row, err := r.q.GetMonthSummary(ctx, arg)
+	if err != nil {
+		return MonthSummaryResult{}, apperror.Wrap(apperror.ErrInternal, err)
+	}
+	return MonthSummaryResult{
+		IncomeTotal:  row.IncomeTotal,
+		IncomeCount:  row.IncomeCount,
+		ExpenseTotal: row.ExpenseTotal,
+		ExpenseCount: row.ExpenseCount,
+	}, nil
+}
+
 type ListByDateCursorParams struct {
 	WorkspaceID uuid.UUID
 	Date        time.Time

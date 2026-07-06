@@ -41,6 +41,14 @@ func (m *mockUserRepoForHandlerTest) Update(ctx context.Context, userID uuid.UUI
 	return m.updateFn(ctx, userID, name, email)
 }
 
+func (m *mockUserRepoForHandlerTest) UpdatePassword(ctx context.Context, userID uuid.UUID, passwordHash string) (models.User, error) {
+	return models.User{}, nil
+}
+
+func (m *mockUserRepoForHandlerTest) Delete(ctx context.Context, userID uuid.UUID) error {
+	return nil
+}
+
 func TestUserHandler_GetProfile(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	now := time.Now().UTC()
@@ -81,7 +89,7 @@ func TestUserHandler_GetProfile(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			repo := &mockUserRepoForHandlerTest{getByIDFn: tt.mockFn}
-			svc := services.NewUserService(repo)
+			svc := services.NewUserService(repo, 10)
 			handler := NewUserHandler(svc)
 
 			router := gin.New()
@@ -179,7 +187,7 @@ func TestUserHandler_UpdateProfile(t *testing.T) {
 				}
 			}
 			repo := &mockUserRepoForHandlerTest{getByIDFn: getByID, updateFn: tt.mockFn}
-			svc := services.NewUserService(repo)
+			svc := services.NewUserService(repo, 10)
 			handler := NewUserHandler(svc)
 
 			router := gin.New()

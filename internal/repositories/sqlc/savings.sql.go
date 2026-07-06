@@ -223,6 +223,59 @@ func (q *Queries) ListSavingsGoals(ctx context.Context, workspaceID uuid.UUID) (
 	return items, nil
 }
 
+const listSavingsGoalsWithProgress = `-- name: ListSavingsGoalsWithProgress :many
+SELECT
+    sg.id, sg.workspace_id, sg.name, sg.target_amount, sg.deadline, sg.notes, sg.created_at, sg.updated_at,
+    COALESCE(SUM(sc.amount), 0)::float8 AS total_contributed
+FROM savings_goals sg
+LEFT JOIN savings_contributions sc ON sc.goal_id = sg.id
+WHERE sg.workspace_id = $1
+GROUP BY sg.id
+ORDER BY sg.created_at DESC
+`
+
+type ListSavingsGoalsWithProgressRow struct {
+	ID               uuid.UUID          `json:"id"`
+	WorkspaceID      uuid.UUID          `json:"workspace_id"`
+	Name             string             `json:"name"`
+	TargetAmount     float64            `json:"target_amount"`
+	Deadline         pgtype.Date        `json:"deadline"`
+	Notes            pgtype.Text        `json:"notes"`
+	CreatedAt        pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt        pgtype.Timestamptz `json:"updated_at"`
+	TotalContributed float64            `json:"total_contributed"`
+}
+
+func (q *Queries) ListSavingsGoalsWithProgress(ctx context.Context, workspaceID uuid.UUID) ([]ListSavingsGoalsWithProgressRow, error) {
+	rows, err := q.db.Query(ctx, listSavingsGoalsWithProgress, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListSavingsGoalsWithProgressRow{}
+	for rows.Next() {
+		var i ListSavingsGoalsWithProgressRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.WorkspaceID,
+			&i.Name,
+			&i.TargetAmount,
+			&i.Deadline,
+			&i.Notes,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.TotalContributed,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const updateSavingsGoal = `-- name: UpdateSavingsGoal :one
 UPDATE savings_goals
 SET name          = $2,

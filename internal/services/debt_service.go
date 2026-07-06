@@ -17,6 +17,12 @@ var validRateTypes = map[string]bool{
 	"monthly":          true,
 }
 
+var validInsuranceTypes = map[string]bool{
+	"":              true,
+	"fixed_monthly": true,
+	"on_balance":    true,
+}
+
 type DebtRepository interface {
 	Create(ctx context.Context, p repositories.CreateDebtParams) (models.Debt, error)
 	GetByID(ctx context.Context, id uuid.UUID) (models.Debt, error)
@@ -48,10 +54,12 @@ type CreateDebtParams struct {
 	Installments     int32
 	FirstPaymentDate time.Time
 	Notes            string
+	InsuranceRate    float64
+	InsuranceType    string
 }
 
 func (s *DebtService) Create(ctx context.Context, p CreateDebtParams) (models.Debt, error) {
-	if err := validateDebtParams(p.Name, p.Principal, p.Rate, p.RateType, p.Installments, p.FirstPaymentDate); err != nil {
+	if err := validateDebtParams(p.Name, p.Principal, p.Rate, p.RateType, p.Installments, p.FirstPaymentDate, p.InsuranceRate, p.InsuranceType); err != nil {
 		return models.Debt{}, err
 	}
 	return s.repo.Create(ctx, repositories.CreateDebtParams{
@@ -64,6 +72,8 @@ func (s *DebtService) Create(ctx context.Context, p CreateDebtParams) (models.De
 		Installments:     p.Installments,
 		FirstPaymentDate: p.FirstPaymentDate,
 		Notes:            p.Notes,
+		InsuranceRate:    p.InsuranceRate,
+		InsuranceType:    p.InsuranceType,
 	})
 }
 
@@ -93,10 +103,12 @@ type UpdateDebtParams struct {
 	Installments     int32
 	FirstPaymentDate time.Time
 	Notes            string
+	InsuranceRate    float64
+	InsuranceType    string
 }
 
 func (s *DebtService) Update(ctx context.Context, p UpdateDebtParams) (models.Debt, error) {
-	if err := validateDebtParams(p.Name, p.Principal, p.Rate, p.RateType, p.Installments, p.FirstPaymentDate); err != nil {
+	if err := validateDebtParams(p.Name, p.Principal, p.Rate, p.RateType, p.Installments, p.FirstPaymentDate, p.InsuranceRate, p.InsuranceType); err != nil {
 		return models.Debt{}, err
 	}
 	return s.repo.Update(ctx, repositories.UpdateDebtParams{
@@ -110,6 +122,8 @@ func (s *DebtService) Update(ctx context.Context, p UpdateDebtParams) (models.De
 		Installments:     p.Installments,
 		FirstPaymentDate: p.FirstPaymentDate,
 		Notes:            p.Notes,
+		InsuranceRate:    p.InsuranceRate,
+		InsuranceType:    p.InsuranceType,
 	})
 }
 
@@ -221,7 +235,7 @@ func (s *DebtService) DeletePayment(ctx context.Context, paymentID, debtID, work
 	return s.repo.DeletePayment(ctx, paymentID, debtID)
 }
 
-func validateDebtParams(name string, principal, rate float64, rateType string, installments int32, firstPaymentDate time.Time) error {
+func validateDebtParams(name string, principal, rate float64, rateType string, installments int32, firstPaymentDate time.Time, insuranceRate float64, insuranceType string) error {
 	if name == "" {
 		return apperror.WithMessage(apperror.ErrInvalidInput, "name is required")
 	}
@@ -240,22 +254,40 @@ func validateDebtParams(name string, principal, rate float64, rateType string, i
 	if firstPaymentDate.IsZero() {
 		return apperror.WithMessage(apperror.ErrInvalidInput, "first_payment_date is required")
 	}
+	if !validInsuranceTypes[insuranceType] {
+		return apperror.WithMessage(apperror.ErrInvalidInput, "insurance_type must be fixed_monthly or on_balance")
+	}
+	if insuranceRate < 0 {
+		return apperror.WithMessage(apperror.ErrInvalidInput, "insurance_rate must be non-negative")
+	}
 	return nil
 }
 
 func monthlyRate(rate float64, rateType string) float64 {
+	r := rate / 100
 	switch rateType {
 	case "effective_annual":
-		return math.Pow(1+rate, 1.0/12) - 1
+		return math.Pow(1+r, 1.0/12) - 1
 	case "nominal_annual":
-		return rate / 12
+		return r / 12
 	default: // monthly
-		return rate
+		return r
 	}
 }
 
 func round2(v float64) float64 {
 	return math.Round(v*100) / 100
+}
+
+func insuranceAmount(insuranceType string, insuranceRate, balance float64) float64 {
+	switch insuranceType {
+	case "fixed_monthly":
+		return insuranceRate
+	case "on_balance":
+		return round2(balance * insuranceRate / 100)
+	default:
+		return 0
+	}
 }
 
 func computeSchedule(debt models.Debt, payments []models.DebtPayment) []models.DebtScheduleInstallment {
@@ -291,12 +323,16 @@ func computeSchedule(debt models.Debt, payments []models.DebtPayment) []models.D
 			balance = 0
 		}
 
+		insurance := insuranceAmount(debt.InsuranceType, debt.InsuranceRate, balance)
+
 		inst := models.DebtScheduleInstallment{
 			Period:    period,
 			DueDate:   debt.FirstPaymentDate.AddDate(0, i, 0),
 			Payment:   round2(principal + interest),
 			Principal: round2(principal),
 			Interest:  round2(interest),
+			Insurance: insurance,
+			Total:     round2(principal + interest + insurance),
 			Balance:   balance,
 			Status:    "pending",
 		}

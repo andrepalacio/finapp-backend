@@ -32,6 +32,7 @@ type Querier interface {
 	DeleteDebtPayment(ctx context.Context, arg DeleteDebtPaymentParams) error
 	DeleteSavingsGoal(ctx context.Context, arg DeleteSavingsGoalParams) error
 	DeleteTransaction(ctx context.Context, arg DeleteTransactionParams) error
+	DeleteUser(ctx context.Context, id uuid.UUID) error
 	DeleteWorkspace(ctx context.Context, id uuid.UUID) error
 	GetBudgetByID(ctx context.Context, id uuid.UUID) (Budget, error)
 	GetBudgetByYearMonth(ctx context.Context, arg GetBudgetByYearMonthParams) (Budget, error)
@@ -43,6 +44,7 @@ type Querier interface {
 	GetDebtPayment(ctx context.Context, id uuid.UUID) (DebtPayment, error)
 	GetInvitationByID(ctx context.Context, id uuid.UUID) (WorkspaceInvitation, error)
 	GetInvitationByToken(ctx context.Context, token uuid.UUID) (WorkspaceInvitation, error)
+	GetMonthSummary(ctx context.Context, arg GetMonthSummaryParams) (GetMonthSummaryRow, error)
 	GetSavingsGoalByID(ctx context.Context, id uuid.UUID) (SavingsGoal, error)
 	GetTotalContributed(ctx context.Context, goalID uuid.UUID) (float64, error)
 	GetTransactionByID(ctx context.Context, id uuid.UUID) (Transaction, error)
@@ -58,6 +60,7 @@ type Querier interface {
 	ListDebts(ctx context.Context, workspaceID uuid.UUID) ([]Debt, error)
 	ListPendingInvitations(ctx context.Context, workspaceID uuid.UUID) ([]WorkspaceInvitation, error)
 	ListSavingsGoals(ctx context.Context, workspaceID uuid.UUID) ([]SavingsGoal, error)
+	ListSavingsGoalsWithProgress(ctx context.Context, workspaceID uuid.UUID) ([]ListSavingsGoalsWithProgressRow, error)
 	ListTransactions(ctx context.Context, arg ListTransactionsParams) ([]Transaction, error)
 	ListTransactionsByDateCursor(ctx context.Context, arg ListTransactionsByDateCursorParams) ([]Transaction, error)
 	ListWorkspaceMembers(ctx context.Context, workspaceID uuid.UUID) ([]ListWorkspaceMembersRow, error)
@@ -71,6 +74,7 @@ type Querier interface {
 	UpdateSavingsGoal(ctx context.Context, arg UpdateSavingsGoalParams) (SavingsGoal, error)
 	UpdateTransaction(ctx context.Context, arg UpdateTransactionParams) (Transaction, error)
 	UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error)
+	UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) (User, error)
 	UpdateWorkspace(ctx context.Context, arg UpdateWorkspaceParams) (Workspace, error)
 	UpsertBudget(ctx context.Context, arg UpsertBudgetParams) (Budget, error)
 	UpsertBudgetCategory(ctx context.Context, arg UpsertBudgetCategoryParams) error

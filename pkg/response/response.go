@@ -21,6 +21,10 @@ func Created(c *gin.Context, data any) {
 	c.JSON(http.StatusCreated, data)
 }
 
+func NoContent(c *gin.Context) {
+	c.Status(http.StatusNoContent)
+}
+
 func BadRequest(c *gin.Context, code, message string) {
 	c.JSON(http.StatusBadRequest, errorBody{Error: message, Code: code})
 }

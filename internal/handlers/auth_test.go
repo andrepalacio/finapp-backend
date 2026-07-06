@@ -76,6 +76,28 @@ func (r *inMemoryUserRepo) Update(_ context.Context, userID uuid.UUID, name, ema
 	return models.User{}, apperror.ErrNotFound
 }
 
+func (r *inMemoryUserRepo) UpdatePassword(_ context.Context, userID uuid.UUID, passwordHash string) (models.User, error) {
+	for key, user := range r.users {
+		if user.ID == userID {
+			user.PasswordHash = passwordHash
+			delete(r.users, key)
+			r.users[user.Email] = user
+			return user, nil
+		}
+	}
+	return models.User{}, apperror.ErrNotFound
+}
+
+func (r *inMemoryUserRepo) Delete(_ context.Context, userID uuid.UUID) error {
+	for key, user := range r.users {
+		if user.ID == userID {
+			delete(r.users, key)
+			return nil
+		}
+	}
+	return apperror.ErrNotFound
+}
+
 // ── Test helpers ──────────────────────────────────────────────────────────────
 
 func setupRouter(t *testing.T) *gin.Engine {

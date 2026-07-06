@@ -15,7 +15,7 @@ import (
 type savingsService interface {
 	Create(ctx context.Context, p services.CreateSavingsGoalParams) (models.SavingsGoal, error)
 	GetByID(ctx context.Context, id, workspaceID uuid.UUID) (models.SavingsGoal, error)
-	List(ctx context.Context, workspaceID uuid.UUID) ([]models.SavingsGoal, error)
+	ListGoals(ctx context.Context, workspaceID uuid.UUID) ([]services.SavingsGoalProgress, error)
 	Update(ctx context.Context, p services.UpdateSavingsGoalParams) (models.SavingsGoal, error)
 	Delete(ctx context.Context, id, workspaceID uuid.UUID) error
 	GetWithProgress(ctx context.Context, id, workspaceID uuid.UUID) (services.SavingsGoalProgress, error)
@@ -88,7 +88,7 @@ func (h *SavingsHandler) Create(c *gin.Context) {
 // @Router      /workspaces/{workspace_id}/savings-goals [get]
 func (h *SavingsHandler) List(c *gin.Context) {
 	wsID := middleware.WorkspaceIDFromContext(c)
-	goals, err := h.svc.List(c.Request.Context(), wsID)
+	goals, err := h.svc.ListGoals(c.Request.Context(), wsID)
 	if err != nil {
 		response.HandleError(c, err)
 		return

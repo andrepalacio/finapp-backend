@@ -13,9 +13,9 @@ import (
 )
 
 const createDebt = `-- name: CreateDebt :one
-INSERT INTO debts (workspace_id, name, lender, principal, rate, rate_type, installments, first_payment_date, notes)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-RETURNING id, workspace_id, name, lender, principal, rate, rate_type, installments, first_payment_date, notes, created_at, updated_at
+INSERT INTO debts (workspace_id, name, lender, principal, rate, rate_type, installments, first_payment_date, notes, insurance_rate, insurance_type)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+RETURNING id, workspace_id, name, lender, principal, rate, rate_type, installments, first_payment_date, notes, created_at, updated_at, insurance_rate, insurance_type
 `
 
 type CreateDebtParams struct {
@@ -28,6 +28,8 @@ type CreateDebtParams struct {
 	Installments     int32       `json:"installments"`
 	FirstPaymentDate pgtype.Date `json:"first_payment_date"`
 	Notes            pgtype.Text `json:"notes"`
+	InsuranceRate    float64     `json:"insurance_rate"`
+	InsuranceType    string      `json:"insurance_type"`
 }
 
 func (q *Queries) CreateDebt(ctx context.Context, arg CreateDebtParams) (Debt, error) {
@@ -41,6 +43,8 @@ func (q *Queries) CreateDebt(ctx context.Context, arg CreateDebtParams) (Debt, e
 		arg.Installments,
 		arg.FirstPaymentDate,
 		arg.Notes,
+		arg.InsuranceRate,
+		arg.InsuranceType,
 	)
 	var i Debt
 	err := row.Scan(
@@ -56,6 +60,8 @@ func (q *Queries) CreateDebt(ctx context.Context, arg CreateDebtParams) (Debt, e
 		&i.Notes,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.InsuranceRate,
+		&i.InsuranceType,
 	)
 	return i, err
 }
@@ -124,7 +130,7 @@ func (q *Queries) DeleteDebtPayment(ctx context.Context, arg DeleteDebtPaymentPa
 }
 
 const getDebtByID = `-- name: GetDebtByID :one
-SELECT id, workspace_id, name, lender, principal, rate, rate_type, installments, first_payment_date, notes, created_at, updated_at FROM debts WHERE id = $1
+SELECT id, workspace_id, name, lender, principal, rate, rate_type, installments, first_payment_date, notes, created_at, updated_at, insurance_rate, insurance_type FROM debts WHERE id = $1
 `
 
 func (q *Queries) GetDebtByID(ctx context.Context, id uuid.UUID) (Debt, error) {
@@ -143,6 +149,8 @@ func (q *Queries) GetDebtByID(ctx context.Context, id uuid.UUID) (Debt, error) {
 		&i.Notes,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.InsuranceRate,
+		&i.InsuranceType,
 	)
 	return i, err
 }
@@ -199,7 +207,7 @@ func (q *Queries) ListDebtPayments(ctx context.Context, debtID uuid.UUID) ([]Deb
 }
 
 const listDebts = `-- name: ListDebts :many
-SELECT id, workspace_id, name, lender, principal, rate, rate_type, installments, first_payment_date, notes, created_at, updated_at FROM debts WHERE workspace_id = $1 ORDER BY created_at DESC
+SELECT id, workspace_id, name, lender, principal, rate, rate_type, installments, first_payment_date, notes, created_at, updated_at, insurance_rate, insurance_type FROM debts WHERE workspace_id = $1 ORDER BY created_at DESC
 `
 
 func (q *Queries) ListDebts(ctx context.Context, workspaceID uuid.UUID) ([]Debt, error) {
@@ -224,6 +232,8 @@ func (q *Queries) ListDebts(ctx context.Context, workspaceID uuid.UUID) ([]Debt,
 			&i.Notes,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.InsuranceRate,
+			&i.InsuranceType,
 		); err != nil {
 			return nil, err
 		}
@@ -245,9 +255,11 @@ SET name               = $2,
     installments       = $7,
     first_payment_date = $8,
     notes              = $9,
+    insurance_rate     = $10,
+    insurance_type     = $11,
     updated_at         = NOW()
-WHERE id = $1 AND workspace_id = $10
-RETURNING id, workspace_id, name, lender, principal, rate, rate_type, installments, first_payment_date, notes, created_at, updated_at
+WHERE id = $1 AND workspace_id = $12
+RETURNING id, workspace_id, name, lender, principal, rate, rate_type, installments, first_payment_date, notes, created_at, updated_at, insurance_rate, insurance_type
 `
 
 type UpdateDebtParams struct {
@@ -260,6 +272,8 @@ type UpdateDebtParams struct {
 	Installments     int32       `json:"installments"`
 	FirstPaymentDate pgtype.Date `json:"first_payment_date"`
 	Notes            pgtype.Text `json:"notes"`
+	InsuranceRate    float64     `json:"insurance_rate"`
+	InsuranceType    string      `json:"insurance_type"`
 	WorkspaceID      uuid.UUID   `json:"workspace_id"`
 }
 
@@ -274,6 +288,8 @@ func (q *Queries) UpdateDebt(ctx context.Context, arg UpdateDebtParams) (Debt, e
 		arg.Installments,
 		arg.FirstPaymentDate,
 		arg.Notes,
+		arg.InsuranceRate,
+		arg.InsuranceType,
 		arg.WorkspaceID,
 	)
 	var i Debt
@@ -290,6 +306,8 @@ func (q *Queries) UpdateDebt(ctx context.Context, arg UpdateDebtParams) (Debt, e
 		&i.Notes,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.InsuranceRate,
+		&i.InsuranceType,
 	)
 	return i, err
 }

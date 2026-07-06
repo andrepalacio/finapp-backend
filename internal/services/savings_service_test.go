@@ -16,6 +16,7 @@ type mockSavingsRepo struct {
 	createFn             func(ctx context.Context, p repositories.CreateSavingsGoalParams) (models.SavingsGoal, error)
 	getByIDFn            func(ctx context.Context, id uuid.UUID) (models.SavingsGoal, error)
 	listFn               func(ctx context.Context, workspaceID uuid.UUID) ([]models.SavingsGoal, error)
+	listWithProgressFn   func(ctx context.Context, workspaceID uuid.UUID) ([]repositories.SavingsGoalWithProgress, error)
 	updateFn             func(ctx context.Context, p repositories.UpdateSavingsGoalParams) (models.SavingsGoal, error)
 	deleteFn             func(ctx context.Context, id, workspaceID uuid.UUID) error
 	createContributionFn func(ctx context.Context, p repositories.CreateContributionParams) (models.SavingsContribution, error)
@@ -33,6 +34,9 @@ func (m *mockSavingsRepo) GetByID(ctx context.Context, id uuid.UUID) (models.Sav
 }
 func (m *mockSavingsRepo) List(ctx context.Context, workspaceID uuid.UUID) ([]models.SavingsGoal, error) {
 	return m.listFn(ctx, workspaceID)
+}
+func (m *mockSavingsRepo) ListWithProgress(ctx context.Context, workspaceID uuid.UUID) ([]repositories.SavingsGoalWithProgress, error) {
+	return m.listWithProgressFn(ctx, workspaceID)
 }
 func (m *mockSavingsRepo) Update(ctx context.Context, p repositories.UpdateSavingsGoalParams) (models.SavingsGoal, error) {
 	return m.updateFn(ctx, p)

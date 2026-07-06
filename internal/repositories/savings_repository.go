@@ -66,6 +66,35 @@ func (r *SavingsRepository) List(ctx context.Context, workspaceID uuid.UUID) ([]
 	return out, nil
 }
 
+type SavingsGoalWithProgress struct {
+	models.SavingsGoal
+	TotalContributed float64
+}
+
+func (r *SavingsRepository) ListWithProgress(ctx context.Context, workspaceID uuid.UUID) ([]SavingsGoalWithProgress, error) {
+	rows, err := r.q.ListSavingsGoalsWithProgress(ctx, workspaceID)
+	if err != nil {
+		return nil, apperror.Wrap(apperror.ErrInternal, err)
+	}
+	out := make([]SavingsGoalWithProgress, len(rows))
+	for i, row := range rows {
+		out[i] = SavingsGoalWithProgress{
+			SavingsGoal: models.SavingsGoal{
+				ID:           row.ID,
+				WorkspaceID:  row.WorkspaceID,
+				Name:         row.Name,
+				TargetAmount: row.TargetAmount,
+				Deadline:     fromPgDatePtr(row.Deadline),
+				Notes:        fromPgText(row.Notes),
+				CreatedAt:    row.CreatedAt.Time,
+				UpdatedAt:    row.UpdatedAt.Time,
+			},
+			TotalContributed: row.TotalContributed,
+		}
+	}
+	return out, nil
+}
+
 type UpdateSavingsGoalParams struct {
 	ID           uuid.UUID
 	WorkspaceID  uuid.UUID

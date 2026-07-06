@@ -19,6 +19,7 @@ type mockTransactionRepo struct {
 	listFn           func(ctx context.Context, p repositories.ListTransactionsParams) ([]models.Transaction, error)
 	countFn          func(ctx context.Context, p repositories.ListTransactionsParams) (int64, error)
 	dailySummaryFn   func(ctx context.Context, p repositories.DailySummaryParams) ([]models.DailySummary, error)
+	monthSummaryFn   func(ctx context.Context, p repositories.MonthSummaryParams) (repositories.MonthSummaryResult, error)
 	listByDateCursorFn func(ctx context.Context, p repositories.ListByDateCursorParams) ([]models.Transaction, error)
 	updateFn         func(ctx context.Context, p repositories.UpdateTransactionParams) (models.Transaction, error)
 	deleteFn         func(ctx context.Context, id, workspaceID uuid.UUID) error
@@ -41,6 +42,9 @@ func (m *mockTransactionRepo) Count(ctx context.Context, p repositories.ListTran
 }
 func (m *mockTransactionRepo) DailySummary(ctx context.Context, p repositories.DailySummaryParams) ([]models.DailySummary, error) {
 	return m.dailySummaryFn(ctx, p)
+}
+func (m *mockTransactionRepo) MonthSummary(ctx context.Context, p repositories.MonthSummaryParams) (repositories.MonthSummaryResult, error) {
+	return m.monthSummaryFn(ctx, p)
 }
 func (m *mockTransactionRepo) ListByDateCursor(ctx context.Context, p repositories.ListByDateCursorParams) ([]models.Transaction, error) {
 	return m.listByDateCursorFn(ctx, p)

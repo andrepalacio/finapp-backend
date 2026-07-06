@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/andrespalacio/finapp-backend/internal/middleware"
+	"github.com/andrespalacio/finapp-backend/internal/repositories"
 	"github.com/andrespalacio/finapp-backend/internal/services"
 	"github.com/andrespalacio/finapp-backend/pkg/response"
 	"github.com/gin-gonic/gin"
@@ -19,6 +20,7 @@ type transactionService interface {
 	GetByID(ctx context.Context, id uuid.UUID) (services.TransactionView, error)
 	List(ctx context.Context, p services.ListTransactionsParams) (services.TransactionListResult, error)
 	DailySummary(ctx context.Context, p services.DailySummaryParams) (services.DailySummaryResult, error)
+	MonthSummary(ctx context.Context, p repositories.MonthSummaryParams) (repositories.MonthSummaryResult, error)
 	ListByDate(ctx context.Context, p services.ListByDateParams) (services.CursorListResult, error)
 	Update(ctx context.Context, p services.UpdateTransactionParams) (services.TransactionView, error)
 	Delete(ctx context.Context, id, workspaceID uuid.UUID) error
@@ -371,6 +373,43 @@ func (h *TransactionHandler) Delete(c *gin.Context) {
 		return
 	}
 	c.Status(http.StatusNoContent)
+}
+
+// @Summary     Monthly workspace summary
+// @Tags        workspaces
+// @Produce     json
+// @Security    BearerAuth
+// @Param       workspace_id path  string true  "Workspace ID"
+// @Param       date_from    query string false "Start date YYYY-MM-DD"
+// @Param       date_to      query string false "End date YYYY-MM-DD"
+// @Success     200 {object} services.MonthSummaryView
+// @Router      /workspaces/{workspace_id}/summary [get]
+func (h *TransactionHandler) WorkspaceSummary(c *gin.Context) {
+	wsID := middleware.WorkspaceIDFromContext(c)
+	p := repositories.MonthSummaryParams{WorkspaceID: wsID}
+
+	if s := c.Query("date_from"); s != "" {
+		if t, err := time.Parse("2006-01-02", s); err == nil {
+			p.DateFrom = &t
+		}
+	}
+	if s := c.Query("date_to"); s != "" {
+		if t, err := time.Parse("2006-01-02", s); err == nil {
+			p.DateTo = &t
+		}
+	}
+
+	result, err := h.svc.MonthSummary(c.Request.Context(), p)
+	if err != nil {
+		response.HandleError(c, err)
+		return
+	}
+	response.OK(c, services.MonthSummaryView{
+		IncomeTotal:  result.IncomeTotal,
+		IncomeCount:  result.IncomeCount,
+		ExpenseTotal: result.ExpenseTotal,
+		ExpenseCount: result.ExpenseCount,
+	})
 }
 
 func queryInt(c *gin.Context, key string, def int) int {

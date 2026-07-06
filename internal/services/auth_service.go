@@ -23,6 +23,8 @@ type UserRepository interface {
 	GetByEmail(ctx context.Context, email string) (models.User, error)
 	GetByID(ctx context.Context, id uuid.UUID) (models.User, error)
 	Update(ctx context.Context, userID uuid.UUID, name, email string) (models.User, error)
+	UpdatePassword(ctx context.Context, userID uuid.UUID, passwordHash string) (models.User, error)
+	Delete(ctx context.Context, userID uuid.UUID) error
 }
 
 type AuthService struct {

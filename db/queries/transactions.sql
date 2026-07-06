@@ -50,6 +50,17 @@ GROUP BY date
 ORDER BY date DESC
 LIMIT $2 OFFSET $3;
 
+-- name: GetMonthSummary :one
+SELECT
+    COALESCE(SUM(CASE WHEN type = 'income'  THEN amount ELSE 0 END), 0)::float8 AS income_total,
+    COUNT(CASE WHEN type = 'income'  THEN 1 END)::int                            AS income_count,
+    COALESCE(SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END), 0)::float8  AS expense_total,
+    COUNT(CASE WHEN type = 'expense' THEN 1 END)::int                            AS expense_count
+FROM transactions
+WHERE workspace_id = @workspace_id
+  AND (@date_from::date IS NULL OR date >= @date_from::date)
+  AND (@date_to::date   IS NULL OR date <= @date_to::date);
+
 -- name: ListTransactionsByDateCursor :many
 SELECT * FROM transactions
 WHERE workspace_id = $1

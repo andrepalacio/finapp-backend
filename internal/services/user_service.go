@@ -7,14 +7,16 @@ import (
 
 	"github.com/andrespalacio/finapp-backend/pkg/apperror"
 	"github.com/google/uuid"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type UserService struct {
-	repo UserRepository
+	repo       UserRepository
+	bcryptCost int
 }
 
-func NewUserService(repo UserRepository) *UserService {
-	return &UserService{repo: repo}
+func NewUserService(repo UserRepository, bcryptCost int) *UserService {
+	return &UserService{repo: repo, bcryptCost: bcryptCost}
 }
 
 type GetProfileParams struct {
@@ -81,4 +83,46 @@ func (s *UserService) UpdateProfile(ctx context.Context, params UpdateProfilePar
 		CreatedAt: user.CreatedAt.UTC().Format(time.RFC3339),
 		UpdatedAt: user.UpdatedAt.UTC().Format(time.RFC3339),
 	}, nil
+}
+
+type ChangePasswordParams struct {
+	UserID          uuid.UUID
+	CurrentPassword string
+	NewPassword     string
+}
+
+func (s *UserService) ChangePassword(ctx context.Context, params ChangePasswordParams) error {
+	if len(params.NewPassword) < 8 || len(params.NewPassword) > 72 {
+		return apperror.ErrInvalidInput
+	}
+
+	user, err := s.repo.GetByID(ctx, params.UserID)
+	if err != nil {
+		return err
+	}
+
+	err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(params.CurrentPassword))
+	if err != nil {
+		return apperror.ErrUnauthorized
+	}
+
+	newHash, err := bcrypt.GenerateFromPassword([]byte(params.NewPassword), s.bcryptCost)
+	if err != nil {
+		return apperror.Wrap(apperror.ErrInternal, err)
+	}
+
+	_, err = s.repo.UpdatePassword(ctx, params.UserID, string(newHash))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *UserService) Delete(ctx context.Context, userID uuid.UUID) error {
+	err := s.repo.Delete(ctx, userID)
+	if err != nil {
+		return err
+	}
+	return nil
 }

@@ -236,6 +236,43 @@ func (q *Queries) GetDailySummary(ctx context.Context, arg GetDailySummaryParams
 	return items, nil
 }
 
+const getMonthSummary = `-- name: GetMonthSummary :one
+SELECT
+    COALESCE(SUM(CASE WHEN type = 'income'  THEN amount ELSE 0 END), 0)::float8 AS income_total,
+    COUNT(CASE WHEN type = 'income'  THEN 1 END)::int                            AS income_count,
+    COALESCE(SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END), 0)::float8  AS expense_total,
+    COUNT(CASE WHEN type = 'expense' THEN 1 END)::int                            AS expense_count
+FROM transactions
+WHERE workspace_id = $1
+  AND ($2::date IS NULL OR date >= $2::date)
+  AND ($3::date   IS NULL OR date <= $3::date)
+`
+
+type GetMonthSummaryParams struct {
+	WorkspaceID uuid.UUID   `json:"workspace_id"`
+	DateFrom    pgtype.Date `json:"date_from"`
+	DateTo      pgtype.Date `json:"date_to"`
+}
+
+type GetMonthSummaryRow struct {
+	IncomeTotal  float64 `json:"income_total"`
+	IncomeCount  int32   `json:"income_count"`
+	ExpenseTotal float64 `json:"expense_total"`
+	ExpenseCount int32   `json:"expense_count"`
+}
+
+func (q *Queries) GetMonthSummary(ctx context.Context, arg GetMonthSummaryParams) (GetMonthSummaryRow, error) {
+	row := q.db.QueryRow(ctx, getMonthSummary, arg.WorkspaceID, arg.DateFrom, arg.DateTo)
+	var i GetMonthSummaryRow
+	err := row.Scan(
+		&i.IncomeTotal,
+		&i.IncomeCount,
+		&i.ExpenseTotal,
+		&i.ExpenseCount,
+	)
+	return i, err
+}
+
 const getTransactionByID = `-- name: GetTransactionByID :one
 SELECT id, workspace_id, user_id, category_id, transfer_id, type, transfer_direction, amount, description, date, created_at, updated_at FROM transactions WHERE id = $1
 `

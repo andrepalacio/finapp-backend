@@ -17,6 +17,8 @@ type Debt struct {
 	Installments     int32     `json:"installments"`
 	FirstPaymentDate time.Time `json:"first_payment_date"`
 	Notes            string    `json:"notes,omitempty"`
+	InsuranceRate    float64   `json:"insurance_rate"`
+	InsuranceType    string    `json:"insurance_type,omitempty"`
 	CreatedAt        time.Time `json:"created_at"`
 	UpdatedAt        time.Time `json:"updated_at"`
 }
@@ -37,6 +39,8 @@ type DebtScheduleInstallment struct {
 	Payment     float64    `json:"payment"`
 	Principal   float64    `json:"principal"`
 	Interest    float64    `json:"interest"`
+	Insurance   float64    `json:"insurance"`
+	Total       float64    `json:"total"`
 	Balance     float64    `json:"balance"`
 	Status      string     `json:"status"`
 	PaidAt      *time.Time `json:"paid_at,omitempty"`

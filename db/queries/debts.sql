@@ -1,6 +1,6 @@
 -- name: CreateDebt :one
-INSERT INTO debts (workspace_id, name, lender, principal, rate, rate_type, installments, first_payment_date, notes)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+INSERT INTO debts (workspace_id, name, lender, principal, rate, rate_type, installments, first_payment_date, notes, insurance_rate, insurance_type)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
 RETURNING *;
 
 -- name: GetDebtByID :one
@@ -19,8 +19,10 @@ SET name               = $2,
     installments       = $7,
     first_payment_date = $8,
     notes              = $9,
+    insurance_rate     = $10,
+    insurance_type     = $11,
     updated_at         = NOW()
-WHERE id = $1 AND workspace_id = $10
+WHERE id = $1 AND workspace_id = $12
 RETURNING *;
 
 -- name: DeleteDebt :exec

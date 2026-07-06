@@ -9,6 +9,16 @@ SELECT * FROM savings_goals WHERE id = $1;
 -- name: ListSavingsGoals :many
 SELECT * FROM savings_goals WHERE workspace_id = $1 ORDER BY created_at DESC;
 
+-- name: ListSavingsGoalsWithProgress :many
+SELECT
+    sg.id, sg.workspace_id, sg.name, sg.target_amount, sg.deadline, sg.notes, sg.created_at, sg.updated_at,
+    COALESCE(SUM(sc.amount), 0)::float8 AS total_contributed
+FROM savings_goals sg
+LEFT JOIN savings_contributions sc ON sc.goal_id = sg.id
+WHERE sg.workspace_id = $1
+GROUP BY sg.id
+ORDER BY sg.created_at DESC;
+
 -- name: UpdateSavingsGoal :one
 UPDATE savings_goals
 SET name          = $2,

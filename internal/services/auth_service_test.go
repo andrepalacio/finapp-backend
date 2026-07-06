@@ -76,6 +76,27 @@ func (m *mockUserRepo) Update(_ context.Context, userID uuid.UUID, name, email s
 	return models.User{}, apperror.ErrNotFound
 }
 
+func (m *mockUserRepo) UpdatePassword(_ context.Context, userID uuid.UUID, passwordHash string) (models.User, error) {
+	for i, user := range m.users {
+		if user.ID == userID {
+			user.PasswordHash = passwordHash
+			m.users[i] = user
+			return user, nil
+		}
+	}
+	return models.User{}, apperror.ErrNotFound
+}
+
+func (m *mockUserRepo) Delete(_ context.Context, userID uuid.UUID) error {
+	for i, user := range m.users {
+		if user.ID == userID {
+			delete(m.users, i)
+			return nil
+		}
+	}
+	return apperror.ErrNotFound
+}
+
 // ── Test helpers ──────────────────────────────────────────────────────────────
 
 func newTestService(t *testing.T) (*services.AuthService, *mockUserRepo) {

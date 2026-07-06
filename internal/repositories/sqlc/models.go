@@ -49,6 +49,8 @@ type Debt struct {
 	Notes            pgtype.Text        `json:"notes"`
 	CreatedAt        pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt        pgtype.Timestamptz `json:"updated_at"`
+	InsuranceRate    float64            `json:"insurance_rate"`
+	InsuranceType    string             `json:"insurance_type"`
 }
 
 type DebtPayment struct {

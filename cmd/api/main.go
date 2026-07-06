@@ -73,7 +73,7 @@ func main() {
 
 	// Services
 	authSvc        := services.NewAuthService(userRepo, redisClient, jwtManager, bcryptCost)
-	userSvc        := services.NewUserService(userRepo)
+	userSvc        := services.NewUserService(userRepo, bcryptCost)
 	workspaceSvc   := services.NewWorkspaceService(workspaceRepo)
 	categorySvc    := services.NewCategoryService(categoryRepo)
 	transactionSvc := services.NewTransactionService(transactionRepo)
@@ -126,6 +126,8 @@ func main() {
 		{
 			user.GET("/profile", userHandler.GetProfile)
 			user.PUT("/profile", userHandler.UpdateProfile)
+			user.PUT("/password", userHandler.ChangePassword)
+			user.DELETE("", userHandler.Delete)
 		}
 
 		authRequired := middleware.AuthMiddleware(jwtManager)
@@ -143,6 +145,7 @@ func main() {
 		wsMember := v1.Group("/workspaces/:workspace_id", authRequired, wsMW)
 		{
 			wsMember.GET("", workspaceHandler.Get)
+			wsMember.GET("/summary", transactionHandler.WorkspaceSummary)
 			wsMember.PUT("", workspaceHandler.Update)
 			wsMember.DELETE("", workspaceHandler.Delete)
 
@@ -197,15 +200,15 @@ func main() {
 			wsMember.PUT("/debts/:debt_id/payments/:payment_id", debtHandler.UpdatePayment)
 			wsMember.DELETE("/debts/:debt_id/payments/:payment_id", debtHandler.DeletePayment)
 
-			// Savings goals
-			wsMember.GET("/savings-goals", savingsHandler.List)
-			wsMember.POST("/savings-goals", savingsHandler.Create)
-			wsMember.GET("/savings-goals/:goal_id", savingsHandler.Get)
-			wsMember.PUT("/savings-goals/:goal_id", savingsHandler.Update)
-			wsMember.DELETE("/savings-goals/:goal_id", savingsHandler.Delete)
-			wsMember.GET("/savings-goals/:goal_id/contributions", savingsHandler.ListContributions)
-			wsMember.POST("/savings-goals/:goal_id/contributions", savingsHandler.AddContribution)
-			wsMember.DELETE("/savings-goals/:goal_id/contributions/:contribution_id", savingsHandler.DeleteContribution)
+			// Savings Goals
+			wsMember.GET("/savings", savingsHandler.List)
+			wsMember.POST("/savings", savingsHandler.Create)
+			wsMember.GET("/savings/:goal_id", savingsHandler.Get)
+			wsMember.PUT("/savings/:goal_id", savingsHandler.Update)
+			wsMember.DELETE("/savings/:goal_id", savingsHandler.Delete)
+			wsMember.GET("/savings/:goal_id/contributions", savingsHandler.ListContributions)
+			wsMember.POST("/savings/:goal_id/contributions", savingsHandler.AddContribution)
+			wsMember.DELETE("/savings/:goal_id/contributions/:contribution_id", savingsHandler.DeleteContribution)
 		}
 	}
 

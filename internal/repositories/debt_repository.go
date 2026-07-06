@@ -32,6 +32,8 @@ type CreateDebtParams struct {
 	Installments     int32
 	FirstPaymentDate time.Time
 	Notes            string
+	InsuranceRate    float64
+	InsuranceType    string
 }
 
 func (r *DebtRepository) Create(ctx context.Context, p CreateDebtParams) (models.Debt, error) {
@@ -45,6 +47,8 @@ func (r *DebtRepository) Create(ctx context.Context, p CreateDebtParams) (models
 		Installments:     p.Installments,
 		FirstPaymentDate: toPgDate(p.FirstPaymentDate),
 		Notes:            toPgText(p.Notes),
+		InsuranceRate:    p.InsuranceRate,
+		InsuranceType:    p.InsuranceType,
 	})
 	if err != nil {
 		return models.Debt{}, apperror.Wrap(apperror.ErrInternal, err)
@@ -86,6 +90,8 @@ type UpdateDebtParams struct {
 	Installments     int32
 	FirstPaymentDate time.Time
 	Notes            string
+	InsuranceRate    float64
+	InsuranceType    string
 }
 
 func (r *DebtRepository) Update(ctx context.Context, p UpdateDebtParams) (models.Debt, error) {
@@ -100,6 +106,8 @@ func (r *DebtRepository) Update(ctx context.Context, p UpdateDebtParams) (models
 		Installments:     p.Installments,
 		FirstPaymentDate: toPgDate(p.FirstPaymentDate),
 		Notes:            toPgText(p.Notes),
+		InsuranceRate:    p.InsuranceRate,
+		InsuranceType:    p.InsuranceType,
 	})
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -202,6 +210,8 @@ func toDebtModel(row sqlc.Debt) models.Debt {
 		Installments:     row.Installments,
 		FirstPaymentDate: fromPgDate(row.FirstPaymentDate),
 		Notes:            fromPgText(row.Notes),
+		InsuranceRate:    row.InsuranceRate,
+		InsuranceType:    row.InsuranceType,
 		CreatedAt:        row.CreatedAt.Time,
 		UpdatedAt:        row.UpdatedAt.Time,
 	}

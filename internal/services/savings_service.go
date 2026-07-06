@@ -14,6 +14,7 @@ type SavingsRepository interface {
 	Create(ctx context.Context, p repositories.CreateSavingsGoalParams) (models.SavingsGoal, error)
 	GetByID(ctx context.Context, id uuid.UUID) (models.SavingsGoal, error)
 	List(ctx context.Context, workspaceID uuid.UUID) ([]models.SavingsGoal, error)
+	ListWithProgress(ctx context.Context, workspaceID uuid.UUID) ([]repositories.SavingsGoalWithProgress, error)
 	Update(ctx context.Context, p repositories.UpdateSavingsGoalParams) (models.SavingsGoal, error)
 	Delete(ctx context.Context, id, workspaceID uuid.UUID) error
 	CreateContribution(ctx context.Context, p repositories.CreateContributionParams) (models.SavingsContribution, error)
@@ -73,8 +74,25 @@ func (s *SavingsService) GetByID(ctx context.Context, id, workspaceID uuid.UUID)
 	return goal, nil
 }
 
-func (s *SavingsService) List(ctx context.Context, workspaceID uuid.UUID) ([]models.SavingsGoal, error) {
-	return s.repo.List(ctx, workspaceID)
+func (s *SavingsService) ListGoals(ctx context.Context, workspaceID uuid.UUID) ([]SavingsGoalProgress, error) {
+	rows, err := s.repo.ListWithProgress(ctx, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]SavingsGoalProgress, len(rows))
+	for i, row := range rows {
+		var pct float64
+		if row.TargetAmount > 0 {
+			pct = round2(row.TotalContributed / row.TargetAmount * 100)
+		}
+		out[i] = SavingsGoalProgress{
+			SavingsGoal:      row.SavingsGoal,
+			TotalContributed: round2(row.TotalContributed),
+			Remaining:        round2(row.TargetAmount - row.TotalContributed),
+			ProgressPct:      pct,
+		}
+	}
+	return out, nil
 }
 
 type UpdateSavingsGoalParams struct {

@@ -42,6 +42,8 @@ type createDebtRequest struct {
 	Installments     int32   `json:"installments" binding:"required,min=1"`
 	FirstPaymentDate string  `json:"first_payment_date" binding:"required"`
 	Notes            string  `json:"notes"`
+	InsuranceRate    float64 `json:"insurance_rate"`
+	InsuranceType    string  `json:"insurance_type"`
 }
 
 // @Summary     Create debt
@@ -78,6 +80,8 @@ func (h *DebtHandler) Create(c *gin.Context) {
 		Installments:     req.Installments,
 		FirstPaymentDate: firstPayment,
 		Notes:            req.Notes,
+		InsuranceRate:    req.InsuranceRate,
+		InsuranceType:    req.InsuranceType,
 	})
 	if err != nil {
 		response.HandleError(c, err)
@@ -135,6 +139,8 @@ type updateDebtRequest struct {
 	Installments     int32   `json:"installments" binding:"required,min=1"`
 	FirstPaymentDate string  `json:"first_payment_date" binding:"required"`
 	Notes            string  `json:"notes"`
+	InsuranceRate    float64 `json:"insurance_rate"`
+	InsuranceType    string  `json:"insurance_type"`
 }
 
 // @Summary     Update debt
@@ -175,6 +181,8 @@ func (h *DebtHandler) Update(c *gin.Context) {
 		Installments:     req.Installments,
 		FirstPaymentDate: firstPayment,
 		Notes:            req.Notes,
+		InsuranceRate:    req.InsuranceRate,
+		InsuranceType:    req.InsuranceType,
 	})
 	if err != nil {
 		response.HandleError(c, err)

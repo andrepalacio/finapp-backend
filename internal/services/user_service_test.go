@@ -10,6 +10,7 @@ import (
 	"github.com/andrespalacio/finapp-backend/pkg/apperror"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type mockUserRepository struct {
@@ -31,6 +32,14 @@ func (m *mockUserRepository) GetByID(ctx context.Context, id uuid.UUID) (models.
 
 func (m *mockUserRepository) Update(ctx context.Context, userID uuid.UUID, name, email string) (models.User, error) {
 	return m.updateFn(ctx, userID, name, email)
+}
+
+func (m *mockUserRepository) UpdatePassword(ctx context.Context, userID uuid.UUID, passwordHash string) (models.User, error) {
+	return models.User{}, nil
+}
+
+func (m *mockUserRepository) Delete(ctx context.Context, userID uuid.UUID) error {
+	return nil
 }
 
 func TestUserService_GetProfile(t *testing.T) {
@@ -80,7 +89,7 @@ func TestUserService_GetProfile(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			repo := &mockUserRepository{getByIDFn: tt.mockFn}
-			svc := NewUserService(repo)
+			svc := NewUserService(repo, 10)
 
 			got, err := svc.GetProfile(context.Background(), GetProfileParams{UserID: tt.userID})
 			if tt.wantErr {
@@ -209,7 +218,7 @@ func TestUserService_UpdateProfile(t *testing.T) {
 				}
 			}
 			repo := &mockUserRepository{getByIDFn: getByID, updateFn: tt.mockFn}
-			svc := NewUserService(repo)
+			svc := NewUserService(repo, 10)
 
 			got, err := svc.UpdateProfile(context.Background(), tt.params)
 			if tt.wantErr {
@@ -224,4 +233,82 @@ func TestUserService_UpdateProfile(t *testing.T) {
 			assert.Equal(t, tt.want.Name, got.Name)
 		})
 	}
+}
+
+func TestUserService_ChangePassword(t *testing.T) {
+	userID := uuid.New()
+	now := time.Now().UTC()
+
+	oldPassword := "oldpass123"
+	oldHash, _ := bcrypt.GenerateFromPassword([]byte(oldPassword), 10)
+
+	tests := []struct {
+		name    string
+		params  ChangePasswordParams
+		wantErr bool
+		errType error
+	}{
+		{
+			name: "success",
+			params: ChangePasswordParams{
+				UserID:          userID,
+				CurrentPassword: "oldpass123",
+				NewPassword:     "newpass456",
+			},
+			wantErr: false,
+		},
+		{
+			name: "wrong current password",
+			params: ChangePasswordParams{
+				UserID:          userID,
+				CurrentPassword: "wrongpass",
+				NewPassword:     "newpass456",
+			},
+			wantErr: true,
+			errType: apperror.ErrUnauthorized,
+		},
+		{
+			name: "new password too short",
+			params: ChangePasswordParams{
+				UserID:          userID,
+				CurrentPassword: "oldpass123",
+				NewPassword:     "short",
+			},
+			wantErr: true,
+			errType: apperror.ErrInvalidInput,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			repo := &mockUserRepository{
+				getByIDFn: func(_ context.Context, _ uuid.UUID) (models.User, error) {
+					return models.User{
+						ID:           userID,
+						PasswordHash: string(oldHash),
+						CreatedAt:    now,
+						UpdatedAt:    now,
+					}, nil
+				},
+			}
+			svc := NewUserService(repo, 10)
+			err := svc.ChangePassword(context.Background(), tt.params)
+			if tt.wantErr {
+				assert.Error(t, err)
+				assert.Equal(t, tt.errType, err)
+				return
+			}
+			assert.NoError(t, err)
+		})
+	}
+}
+
+func TestUserService_Delete(t *testing.T) {
+	userID := uuid.New()
+
+	repo := &mockUserRepository{}
+	svc := NewUserService(repo, 10)
+
+	err := svc.Delete(context.Background(), userID)
+	assert.NoError(t, err)
 }

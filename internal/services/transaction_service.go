@@ -17,6 +17,7 @@ type TransactionRepository interface {
 	List(ctx context.Context, p repositories.ListTransactionsParams) ([]models.Transaction, error)
 	Count(ctx context.Context, p repositories.ListTransactionsParams) (int64, error)
 	DailySummary(ctx context.Context, p repositories.DailySummaryParams) ([]models.DailySummary, error)
+	MonthSummary(ctx context.Context, p repositories.MonthSummaryParams) (repositories.MonthSummaryResult, error)
 	ListByDateCursor(ctx context.Context, p repositories.ListByDateCursorParams) ([]models.Transaction, error)
 	Update(ctx context.Context, p repositories.UpdateTransactionParams) (models.Transaction, error)
 	Delete(ctx context.Context, id, workspaceID uuid.UUID) error
@@ -239,6 +240,17 @@ func (s *TransactionService) DailySummary(ctx context.Context, p DailySummaryPar
 		}
 	}
 	return DailySummaryResult{Items: items}, nil
+}
+
+type MonthSummaryView struct {
+	IncomeTotal  float64 `json:"income_total"`
+	IncomeCount  int32   `json:"income_count"`
+	ExpenseTotal float64 `json:"expense_total"`
+	ExpenseCount int32   `json:"expense_count"`
+}
+
+func (s *TransactionService) MonthSummary(ctx context.Context, p repositories.MonthSummaryParams) (repositories.MonthSummaryResult, error) {
+	return s.repo.MonthSummary(ctx, p)
 }
 
 type ListByDateParams struct {
