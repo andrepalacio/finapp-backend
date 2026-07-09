@@ -180,6 +180,243 @@ func TestDebtService_RecordPayment_ZeroPeriod(t *testing.T) {
 	assert.ErrorIs(t, err, apperror.ErrInvalidInput)
 }
 
+func TestDebtService_List(t *testing.T) {
+	wsID := uuid.New()
+	debts := []models.Debt{makeDebt(wsID), makeDebt(wsID)}
+
+	repo := &mockDebtRepo{
+		listFn: func(_ context.Context, _ uuid.UUID) ([]models.Debt, error) { return debts, nil },
+	}
+	svc := NewDebtService(repo)
+
+	got, err := svc.List(context.Background(), wsID)
+	assert.NoError(t, err)
+	assert.Len(t, got, 2)
+}
+
+func TestDebtService_List_RepoError(t *testing.T) {
+	repo := &mockDebtRepo{
+		listFn: func(_ context.Context, _ uuid.UUID) ([]models.Debt, error) { return nil, apperror.ErrInternal },
+	}
+	svc := NewDebtService(repo)
+
+	_, err := svc.List(context.Background(), uuid.New())
+	assert.ErrorIs(t, err, apperror.ErrInternal)
+}
+
+func TestDebtService_Update(t *testing.T) {
+	wsID := uuid.New()
+	firstPayment := time.Date(2026, 6, 1, 0, 0, 0, 0, time.UTC)
+
+	tests := []struct {
+		name    string
+		params  UpdateDebtParams
+		wantErr bool
+		errType error
+	}{
+		{
+			name: "success",
+			params: UpdateDebtParams{
+				ID: uuid.New(), WorkspaceID: wsID, Name: "Renamed", Principal: 500000,
+				Rate: 0.1, RateType: "monthly", Installments: 6, FirstPaymentDate: firstPayment,
+			},
+		},
+		{
+			name:    "invalid rate type",
+			params:  UpdateDebtParams{ID: uuid.New(), WorkspaceID: wsID, Name: "X", Principal: 100, Rate: 0.1, RateType: "bad", Installments: 6, FirstPaymentDate: firstPayment},
+			wantErr: true, errType: apperror.ErrInvalidInput,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			repo := &mockDebtRepo{
+				updateFn: func(_ context.Context, p repositories.UpdateDebtParams) (models.Debt, error) {
+					debt := makeDebt(p.WorkspaceID)
+					debt.ID = p.ID
+					debt.Name = p.Name
+					return debt, nil
+				},
+			}
+			svc := NewDebtService(repo)
+			got, err := svc.Update(context.Background(), tt.params)
+			if tt.wantErr {
+				assert.ErrorIs(t, err, tt.errType)
+				return
+			}
+			assert.NoError(t, err)
+			assert.Equal(t, tt.params.Name, got.Name)
+		})
+	}
+}
+
+func TestDebtService_Delete(t *testing.T) {
+	wsID := uuid.New()
+	otherWS := uuid.New()
+	debt := makeDebt(wsID)
+
+	t.Run("success", func(t *testing.T) {
+		deleteCalled := false
+		repo := &mockDebtRepo{
+			getByIDFn: func(_ context.Context, _ uuid.UUID) (models.Debt, error) { return debt, nil },
+			deleteFn: func(_ context.Context, _, _ uuid.UUID) error { deleteCalled = true; return nil },
+		}
+		svc := NewDebtService(repo)
+		err := svc.Delete(context.Background(), debt.ID, wsID)
+		assert.NoError(t, err)
+		assert.True(t, deleteCalled)
+	})
+
+	t.Run("wrong workspace", func(t *testing.T) {
+		repo := &mockDebtRepo{
+			getByIDFn: func(_ context.Context, _ uuid.UUID) (models.Debt, error) { return debt, nil },
+		}
+		svc := NewDebtService(repo)
+		err := svc.Delete(context.Background(), debt.ID, otherWS)
+		assert.ErrorIs(t, err, apperror.ErrNotFound)
+	})
+}
+
+func TestDebtService_GetSchedule(t *testing.T) {
+	wsID := uuid.New()
+	debt := makeDebt(wsID)
+
+	t.Run("success", func(t *testing.T) {
+		repo := &mockDebtRepo{
+			getByIDFn:      func(_ context.Context, _ uuid.UUID) (models.Debt, error) { return debt, nil },
+			listPaymentsFn: func(_ context.Context, _ uuid.UUID) ([]models.DebtPayment, error) { return nil, nil },
+		}
+		svc := NewDebtService(repo)
+		schedule, err := svc.GetSchedule(context.Background(), debt.ID, wsID)
+		assert.NoError(t, err)
+		assert.Len(t, schedule, int(debt.Installments))
+	})
+
+	t.Run("wrong workspace", func(t *testing.T) {
+		repo := &mockDebtRepo{
+			getByIDFn: func(_ context.Context, _ uuid.UUID) (models.Debt, error) { return debt, nil },
+		}
+		svc := NewDebtService(repo)
+		_, err := svc.GetSchedule(context.Background(), debt.ID, uuid.New())
+		assert.ErrorIs(t, err, apperror.ErrNotFound)
+	})
+
+	t.Run("list payments error", func(t *testing.T) {
+		repo := &mockDebtRepo{
+			getByIDFn:      func(_ context.Context, _ uuid.UUID) (models.Debt, error) { return debt, nil },
+			listPaymentsFn: func(_ context.Context, _ uuid.UUID) ([]models.DebtPayment, error) { return nil, apperror.ErrInternal },
+		}
+		svc := NewDebtService(repo)
+		_, err := svc.GetSchedule(context.Background(), debt.ID, wsID)
+		assert.ErrorIs(t, err, apperror.ErrInternal)
+	})
+}
+
+func TestDebtService_ListPayments(t *testing.T) {
+	wsID := uuid.New()
+	debt := makeDebt(wsID)
+	payments := []models.DebtPayment{{ID: uuid.New(), DebtID: debt.ID, Period: 1, Amount: 100}}
+
+	t.Run("success", func(t *testing.T) {
+		repo := &mockDebtRepo{
+			getByIDFn:      func(_ context.Context, _ uuid.UUID) (models.Debt, error) { return debt, nil },
+			listPaymentsFn: func(_ context.Context, _ uuid.UUID) ([]models.DebtPayment, error) { return payments, nil },
+		}
+		svc := NewDebtService(repo)
+		got, err := svc.ListPayments(context.Background(), debt.ID, wsID)
+		assert.NoError(t, err)
+		assert.Len(t, got, 1)
+	})
+
+	t.Run("wrong workspace", func(t *testing.T) {
+		repo := &mockDebtRepo{
+			getByIDFn: func(_ context.Context, _ uuid.UUID) (models.Debt, error) { return debt, nil },
+		}
+		svc := NewDebtService(repo)
+		_, err := svc.ListPayments(context.Background(), debt.ID, uuid.New())
+		assert.ErrorIs(t, err, apperror.ErrNotFound)
+	})
+}
+
+func TestDebtService_UpdatePayment(t *testing.T) {
+	wsID := uuid.New()
+	debt := makeDebt(wsID)
+	otherDebtID := uuid.New()
+	payment := models.DebtPayment{ID: uuid.New(), DebtID: debt.ID, Period: 1, Amount: 100, PaidAt: time.Now()}
+
+	tests := []struct {
+		name    string
+		params  UpdatePaymentParams
+		wantErr bool
+		errType error
+	}{
+		{
+			name:   "success",
+			params: UpdatePaymentParams{PaymentID: payment.ID, DebtID: debt.ID, Amount: 150, PaidAt: time.Now()},
+		},
+		{
+			name:    "payment belongs to different debt",
+			params:  UpdatePaymentParams{PaymentID: payment.ID, DebtID: otherDebtID, Amount: 150, PaidAt: time.Now()},
+			wantErr: true, errType: apperror.ErrNotFound,
+		},
+		{
+			name:    "invalid amount",
+			params:  UpdatePaymentParams{PaymentID: payment.ID, DebtID: debt.ID, Amount: 0, PaidAt: time.Now()},
+			wantErr: true, errType: apperror.ErrInvalidInput,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			repo := &mockDebtRepo{
+				getByIDFn:    func(_ context.Context, _ uuid.UUID) (models.Debt, error) { return debt, nil },
+				getPaymentFn: func(_ context.Context, _ uuid.UUID) (models.DebtPayment, error) { return payment, nil },
+				updatePaymentFn: func(_ context.Context, p repositories.UpdateDebtPaymentParams) (models.DebtPayment, error) {
+					return models.DebtPayment{ID: p.ID, DebtID: debt.ID, Amount: p.Amount, PaidAt: p.PaidAt}, nil
+				},
+			}
+			svc := NewDebtService(repo)
+			got, err := svc.UpdatePayment(context.Background(), wsID, tt.params)
+			if tt.wantErr {
+				assert.ErrorIs(t, err, tt.errType)
+				return
+			}
+			assert.NoError(t, err)
+			assert.Equal(t, tt.params.Amount, got.Amount)
+		})
+	}
+}
+
+func TestDebtService_DeletePayment(t *testing.T) {
+	wsID := uuid.New()
+	debt := makeDebt(wsID)
+	otherDebtID := uuid.New()
+	payment := models.DebtPayment{ID: uuid.New(), DebtID: debt.ID, Period: 1, Amount: 100}
+
+	t.Run("success", func(t *testing.T) {
+		deleteCalled := false
+		repo := &mockDebtRepo{
+			getByIDFn:    func(_ context.Context, _ uuid.UUID) (models.Debt, error) { return debt, nil },
+			getPaymentFn: func(_ context.Context, _ uuid.UUID) (models.DebtPayment, error) { return payment, nil },
+			deletePaymentFn: func(_ context.Context, _, _ uuid.UUID) error { deleteCalled = true; return nil },
+		}
+		svc := NewDebtService(repo)
+		err := svc.DeletePayment(context.Background(), payment.ID, debt.ID, wsID)
+		assert.NoError(t, err)
+		assert.True(t, deleteCalled)
+	})
+
+	t.Run("payment belongs to different debt", func(t *testing.T) {
+		repo := &mockDebtRepo{
+			getByIDFn:    func(_ context.Context, _ uuid.UUID) (models.Debt, error) { return debt, nil },
+			getPaymentFn: func(_ context.Context, _ uuid.UUID) (models.DebtPayment, error) { return payment, nil },
+		}
+		svc := NewDebtService(repo)
+		err := svc.DeletePayment(context.Background(), payment.ID, otherDebtID, wsID)
+		assert.ErrorIs(t, err, apperror.ErrNotFound)
+	})
+}
+
 func TestComputeSchedule_FrenchAmortization(t *testing.T) {
 	debt := models.Debt{
 		Principal:        1200000,

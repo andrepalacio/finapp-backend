@@ -9,14 +9,10 @@ import (
 
 	"github.com/andrespalacio/finapp-backend/db"
 	"github.com/andrespalacio/finapp-backend/internal/handlers"
-	"github.com/andrespalacio/finapp-backend/internal/middleware"
 	"github.com/andrespalacio/finapp-backend/internal/repositories"
 	"github.com/andrespalacio/finapp-backend/internal/services"
 	pkgauth "github.com/andrespalacio/finapp-backend/pkg/auth"
 	_ "github.com/andrespalacio/finapp-backend/api/swagger"
-	"github.com/gin-gonic/gin"
-	swaggerFiles "github.com/swaggo/files"
-	ginSwagger "github.com/swaggo/gin-swagger"
 	"github.com/joho/godotenv"
 	"go.uber.org/zap"
 )
@@ -102,121 +98,19 @@ func main() {
 	alertHandler       := handlers.NewAlertHandler(budgetSvc)
 
 	// Router
-	if os.Getenv("ENV") == "production" {
-		gin.SetMode(gin.ReleaseMode)
-	}
-
-	r := gin.New()
-	r.Use(middleware.LoggerMiddleware(logger))
-	r.Use(middleware.CORSMiddleware())
-	r.Use(gin.Recovery())
-
-	r.GET("/health", func(c *gin.Context) {
-		c.JSON(200, gin.H{"status": "ok"})
+	r := newRouter(logger, redisClient, jwtManager, workspaceRepo, handlerSet{
+		auth:        authHandler,
+		user:        userHandler,
+		workspace:   workspaceHandler,
+		category:    categoryHandler,
+		transaction: transactionHandler,
+		budget:      budgetHandler,
+		debt:        debtHandler,
+		savings:     savingsHandler,
+		invitation:  invitationHandler,
+		importH:     importHandler,
+		alert:       alertHandler,
 	})
-	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
-
-	v1 := r.Group("/api/v1")
-	{
-		rateLimiter := middleware.RateLimitMiddleware(redisClient, 10, time.Minute)
-
-		auth := v1.Group("/auth")
-		{
-			auth.POST("/register", rateLimiter, authHandler.Register)
-			auth.POST("/login", rateLimiter, authHandler.Login)
-			auth.POST("/refresh", authHandler.Refresh)
-			auth.POST("/logout", authHandler.Logout)
-		}
-
-		user := v1.Group("/user", middleware.AuthMiddleware(jwtManager))
-		{
-			user.GET("/profile", userHandler.GetProfile)
-			user.PUT("/profile", userHandler.UpdateProfile)
-			user.PUT("/password", userHandler.ChangePassword)
-			user.DELETE("", userHandler.Delete)
-		}
-
-		authRequired := middleware.AuthMiddleware(jwtManager)
-		wsMW := middleware.WorkspaceMiddleware(workspaceRepo)
-
-		// Invitation accept — auth required, no workspace middleware
-		v1.GET("/invitations/accept", authRequired, invitationHandler.Accept)
-
-		// Workspaces
-		ws := v1.Group("/workspaces", authRequired)
-		{
-			ws.POST("", workspaceHandler.Create)
-			ws.GET("", workspaceHandler.List)
-		}
-		wsMember := v1.Group("/workspaces/:workspace_id", authRequired, wsMW)
-		{
-			wsMember.GET("", workspaceHandler.Get)
-			wsMember.GET("/summary", transactionHandler.WorkspaceSummary)
-			wsMember.PUT("", workspaceHandler.Update)
-			wsMember.DELETE("", workspaceHandler.Delete)
-
-			// Members
-			wsMember.GET("/members", workspaceHandler.ListMembers)
-			wsMember.PUT("/members/:user_id/role", workspaceHandler.UpdateMemberRole)
-			wsMember.DELETE("/members/:user_id", workspaceHandler.RemoveMember)
-
-			// Invitations
-			wsMember.GET("/invitations", invitationHandler.ListPending)
-			wsMember.POST("/invitations", invitationHandler.Send)
-			wsMember.DELETE("/invitations/:invitation_id", invitationHandler.Cancel)
-
-			// Alerts
-			wsMember.GET("/alerts", alertHandler.GetAlerts)
-
-			// Categories
-			wsMember.GET("/categories", categoryHandler.List)
-			wsMember.POST("/categories", categoryHandler.Create)
-			wsMember.PUT("/categories/:category_id", categoryHandler.Update)
-			wsMember.DELETE("/categories/:category_id", categoryHandler.Delete)
-
-			// Transactions
-			wsMember.GET("/transactions", transactionHandler.List)
-			wsMember.POST("/transactions", transactionHandler.Create)
-			wsMember.POST("/transactions/transfer", transactionHandler.CreateTransfer)
-			wsMember.GET("/transactions/summary", transactionHandler.DailySummary)
-			wsMember.GET("/transactions/by-date/:date", transactionHandler.ListByDate)
-			wsMember.GET("/transactions/:transaction_id", transactionHandler.Get)
-			wsMember.PUT("/transactions/:transaction_id", transactionHandler.Update)
-			wsMember.DELETE("/transactions/:transaction_id", transactionHandler.Delete)
-			wsMember.GET("/transactions/import/template", importHandler.Template)
-			wsMember.POST("/transactions/import", importHandler.Import)
-
-			// Budgets
-			wsMember.GET("/budgets", budgetHandler.List)
-			wsMember.PUT("/budgets/:year/:month", budgetHandler.Upsert)
-			wsMember.GET("/budgets/:year/:month", budgetHandler.Get)
-			wsMember.DELETE("/budgets/:year/:month", budgetHandler.Delete)
-			wsMember.PUT("/budgets/:year/:month/categories/:category_id", budgetHandler.UpsertCategory)
-			wsMember.DELETE("/budgets/:year/:month/categories/:category_id", budgetHandler.DeleteCategory)
-
-			// Debts
-			wsMember.GET("/debts", debtHandler.List)
-			wsMember.POST("/debts", debtHandler.Create)
-			wsMember.GET("/debts/:debt_id", debtHandler.Get)
-			wsMember.PUT("/debts/:debt_id", debtHandler.Update)
-			wsMember.DELETE("/debts/:debt_id", debtHandler.Delete)
-			wsMember.GET("/debts/:debt_id/schedule", debtHandler.GetSchedule)
-			wsMember.GET("/debts/:debt_id/payments", debtHandler.ListPayments)
-			wsMember.POST("/debts/:debt_id/payments", debtHandler.RecordPayment)
-			wsMember.PUT("/debts/:debt_id/payments/:payment_id", debtHandler.UpdatePayment)
-			wsMember.DELETE("/debts/:debt_id/payments/:payment_id", debtHandler.DeletePayment)
-
-			// Savings Goals
-			wsMember.GET("/savings", savingsHandler.List)
-			wsMember.POST("/savings", savingsHandler.Create)
-			wsMember.GET("/savings/:goal_id", savingsHandler.Get)
-			wsMember.PUT("/savings/:goal_id", savingsHandler.Update)
-			wsMember.DELETE("/savings/:goal_id", savingsHandler.Delete)
-			wsMember.GET("/savings/:goal_id/contributions", savingsHandler.ListContributions)
-			wsMember.POST("/savings/:goal_id/contributions", savingsHandler.AddContribution)
-			wsMember.DELETE("/savings/:goal_id/contributions/:contribution_id", savingsHandler.DeleteContribution)
-		}
-	}
 
 	port := getEnv("PORT", "8080")
 	if err := r.Run(":" + port); err != nil {

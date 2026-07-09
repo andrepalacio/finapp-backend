@@ -1,6 +1,6 @@
 # Arquitectura — finapp-backend
 
-> Snapshot generado por evaluación de arquitectura (2026-07-05). Actualizar cuando cambie la estructura de capas o servicios.
+> Snapshot actualizado 2026-07-09. Actualizar cuando cambie la estructura de capas, servicios o cobertura de tests.
 
 ## Visión general
 
@@ -14,20 +14,15 @@ services/     -> lógica de negocio, define interfaces Repository por dominio
 repositories/ -> implementación con sqlc, único punto de acceso a PostgreSQL
 middleware/   -> auth (JWT), workspace (membership check), cors, logger, ratelimit
 models/       -> tipos de dominio compartidos
-pkg/          -> auth (JWT), response (formato HTTP), validator
+pkg/          -> auth (JWT), response (formato HTTP)
+cmd/api/      -> main.go (bootstrap: config/DB/Redis/DI) + router.go (registro de rutas)
 ```
 
-Regla de dependencia: `handlers -> services -> repositories`. Los servicios reciben repos por interfaz (inyección por constructor), no por implementación concreta — testeable con mocks.
-
-## Métricas (grafo de código)
-
-- 1427 nodos / 4304 edges
-- 66 rutas, 9 servicios, 5 middlewares
-- 210 clases/tipos, 514 métodos, 249 funciones
+Regla de dependencia: `handlers -> services -> repositories`. Los servicios reciben repos por interfaz (inyección por constructor), no por implementación concreta — testeable con mocks. `pkg/validator` existió como wrapper sin uso real (dead code) y fue eliminado.
 
 ## Manejo de errores
 
-Tipo único `AppError` (`pkg/apperror`). `HandleError` y `Wrap` son el punto central de traducción error -> respuesta HTTP (56 call sites cada uno). Nunca se expone el error crudo de Postgres/Redis al cliente.
+Tipo único `AppError` (`pkg/apperror`). `HandleError` y `Wrap` son el punto central de traducción error -> respuesta HTTP. Nunca se expone el error crudo de Postgres/Redis al cliente.
 
 ## Conversión de tipos pg
 
@@ -39,17 +34,19 @@ JWT (access + refresh) vía `pkg/auth/jwt`. `AuthMiddleware` puebla el contexto 
 
 ## Cobertura de tests
 
-| Servicio | Test unitario |
-|---|---|
-| auth | sí |
-| budget | sí |
-| category | sí |
-| debt | sí |
-| savings | sí |
-| transaction | sí |
-| user | sí |
-| workspace | sí |
-| invitation | **no** |
+| Paquete | Cobertura | Notas |
+|---|---|---|
+| `pkg/apperror` | 100% | |
+| `pkg/response` | 100% | |
+| `pkg/auth` | 88.5% | |
+| `internal/middleware` | 100% | incluye `ratelimit.go` vía miniredis |
+| `internal/services` | 72.5% | los 9 servicios tienen test unitario, incl. `invitation` |
+| `internal/handlers` | 77.7% | los 9 handlers antes sin test (budget/category/debt/savings/transaction/workspace/invitation/import/alert) ahora cubiertos |
+| `internal/repositories` | 51.8% con `-tags=integration` | integration tests reales contra Postgres para `workspace`/`debt`/`savings`/`transaction`; `category`/`budget`/`invitation`/`user` repos sin test (CRUD puro, menor prioridad) |
+
+`make test-cover-app` (excluye sqlc generado + wiring de `cmd/api`/`db`) para el número agregado real.
+
+`make test-integration` corre los tests de `internal/repositories` contra Postgres real (`docker compose up -d postgres`, DB `finapp_test` separada de dev). Fuera del suite normal (`go test ./...`), aislado por build tag.
 
 ## Puntos fuertes
 
@@ -57,7 +54,9 @@ JWT (access + refresh) vía `pkg/auth/jwt`. `AuthMiddleware` puebla el contexto 
 - Sin variables globales mutables.
 - Sin `panic()` fuera de rutas esperadas.
 - Error handling y conversión pg centralizados — bajo acoplamiento disperso.
+- `cmd/api/main.go` separado de `router.go` (wiring vs rutas) — evita que `main()` crezca sin límite.
 
 ## Riesgos conocidos
 
-Ver propuesta de mejoras: `.claude/proposals/architecture-improvements.md`.
+- `internal/repositories`: `category_repository`, `budget_repository`, `invitation_repository`, `user_repository` sin integration test (CRUD puro sqlc, bajo riesgo pero sin cobertura real).
+- Rutas duplicadas `/login` vs `/auth/login` en el grafo de código: verificado como artefacto del indexer, no duplicación real en `router.go`.

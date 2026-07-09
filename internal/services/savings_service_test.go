@@ -121,6 +121,139 @@ func TestSavingsService_Create_Validation(t *testing.T) {
 	}
 }
 
+func TestSavingsService_ListGoals(t *testing.T) {
+	wsID := uuid.New()
+	rows := []repositories.SavingsGoalWithProgress{
+		{SavingsGoal: models.SavingsGoal{ID: uuid.New(), WorkspaceID: wsID, Name: "A", TargetAmount: 1000}, TotalContributed: 250},
+		{SavingsGoal: models.SavingsGoal{ID: uuid.New(), WorkspaceID: wsID, Name: "B", TargetAmount: 0}, TotalContributed: 0},
+	}
+
+	repo := &mockSavingsRepo{
+		listWithProgressFn: func(_ context.Context, _ uuid.UUID) ([]repositories.SavingsGoalWithProgress, error) { return rows, nil },
+	}
+	svc := NewSavingsService(repo)
+
+	got, err := svc.ListGoals(context.Background(), wsID)
+	assert.NoError(t, err)
+	assert.Len(t, got, 2)
+	assert.Equal(t, float64(25), got[0].ProgressPct)
+	assert.Equal(t, float64(750), got[0].Remaining)
+	assert.Equal(t, float64(0), got[1].ProgressPct)
+}
+
+func TestSavingsService_ListGoals_RepoError(t *testing.T) {
+	repo := &mockSavingsRepo{
+		listWithProgressFn: func(_ context.Context, _ uuid.UUID) ([]repositories.SavingsGoalWithProgress, error) {
+			return nil, apperror.ErrInternal
+		},
+	}
+	svc := NewSavingsService(repo)
+
+	_, err := svc.ListGoals(context.Background(), uuid.New())
+	assert.ErrorIs(t, err, apperror.ErrInternal)
+}
+
+func TestSavingsService_Update(t *testing.T) {
+	wsID := uuid.New()
+
+	tests := []struct {
+		name    string
+		params  UpdateSavingsGoalParams
+		wantErr bool
+		errType error
+	}{
+		{
+			name:   "success",
+			params: UpdateSavingsGoalParams{ID: uuid.New(), WorkspaceID: wsID, Name: "Renamed", TargetAmount: 200000},
+		},
+		{
+			name:    "empty name",
+			params:  UpdateSavingsGoalParams{ID: uuid.New(), WorkspaceID: wsID, TargetAmount: 200000},
+			wantErr: true, errType: apperror.ErrInvalidInput,
+		},
+		{
+			name:    "zero target",
+			params:  UpdateSavingsGoalParams{ID: uuid.New(), WorkspaceID: wsID, Name: "X", TargetAmount: 0},
+			wantErr: true, errType: apperror.ErrInvalidInput,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			repo := &mockSavingsRepo{
+				updateFn: func(_ context.Context, p repositories.UpdateSavingsGoalParams) (models.SavingsGoal, error) {
+					g := makeSavingsGoal(p.WorkspaceID)
+					g.ID = p.ID
+					g.Name = p.Name
+					g.TargetAmount = p.TargetAmount
+					return g, nil
+				},
+			}
+			svc := NewSavingsService(repo)
+			got, err := svc.Update(context.Background(), tt.params)
+			if tt.wantErr {
+				assert.ErrorIs(t, err, tt.errType)
+				return
+			}
+			assert.NoError(t, err)
+			assert.Equal(t, tt.params.Name, got.Name)
+		})
+	}
+}
+
+func TestSavingsService_Delete(t *testing.T) {
+	wsID := uuid.New()
+	otherWS := uuid.New()
+	goal := makeSavingsGoal(wsID)
+
+	t.Run("success", func(t *testing.T) {
+		deleteCalled := false
+		repo := &mockSavingsRepo{
+			getByIDFn: func(_ context.Context, _ uuid.UUID) (models.SavingsGoal, error) { return goal, nil },
+			deleteFn:  func(_ context.Context, _, _ uuid.UUID) error { deleteCalled = true; return nil },
+		}
+		svc := NewSavingsService(repo)
+		err := svc.Delete(context.Background(), goal.ID, wsID)
+		assert.NoError(t, err)
+		assert.True(t, deleteCalled)
+	})
+
+	t.Run("wrong workspace", func(t *testing.T) {
+		repo := &mockSavingsRepo{
+			getByIDFn: func(_ context.Context, _ uuid.UUID) (models.SavingsGoal, error) { return goal, nil },
+		}
+		svc := NewSavingsService(repo)
+		err := svc.Delete(context.Background(), goal.ID, otherWS)
+		assert.ErrorIs(t, err, apperror.ErrNotFound)
+	})
+}
+
+func TestSavingsService_ListContributions(t *testing.T) {
+	wsID := uuid.New()
+	goal := makeSavingsGoal(wsID)
+	contribs := []models.SavingsContribution{{ID: uuid.New(), GoalID: goal.ID, Amount: 500}}
+
+	t.Run("success", func(t *testing.T) {
+		repo := &mockSavingsRepo{
+			getByIDFn:           func(_ context.Context, _ uuid.UUID) (models.SavingsGoal, error) { return goal, nil },
+			listContributionsFn: func(_ context.Context, _ uuid.UUID) ([]models.SavingsContribution, error) { return contribs, nil },
+		}
+		svc := NewSavingsService(repo)
+		got, err := svc.ListContributions(context.Background(), goal.ID, wsID)
+		assert.NoError(t, err)
+		assert.Len(t, got, 1)
+	})
+
+	t.Run("wrong workspace", func(t *testing.T) {
+		repo := &mockSavingsRepo{
+			getByIDFn: func(_ context.Context, _ uuid.UUID) (models.SavingsGoal, error) { return goal, nil },
+		}
+		svc := NewSavingsService(repo)
+		_, err := svc.ListContributions(context.Background(), goal.ID, uuid.New())
+		assert.ErrorIs(t, err, apperror.ErrNotFound)
+	})
+}
+
 func TestSavingsService_GetWithProgress(t *testing.T) {
 	wsID := uuid.New()
 	goal := makeSavingsGoal(wsID)
