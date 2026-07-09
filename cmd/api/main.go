@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/andrespalacio/finapp-backend/db"
 	"github.com/andrespalacio/finapp-backend/internal/handlers"
 	"github.com/andrespalacio/finapp-backend/internal/middleware"
 	"github.com/andrespalacio/finapp-backend/internal/repositories"
@@ -47,8 +48,13 @@ func main() {
 	jwtManager := pkgauth.NewJWTManager(secret, accessExpiry, refreshExpiry)
 
 	// Database
+	databaseURL := mustEnv("DATABASE_URL")
+	if err := db.RunMigrations(databaseURL); err != nil {
+		logger.Fatal("failed to run migrations", zap.Error(err))
+	}
+
 	ctx := context.Background()
-	pool, err := repositories.NewPostgresPool(ctx, mustEnv("DATABASE_URL"))
+	pool, err := repositories.NewPostgresPool(ctx, databaseURL)
 	if err != nil {
 		logger.Fatal("failed to connect to postgres", zap.Error(err))
 	}
