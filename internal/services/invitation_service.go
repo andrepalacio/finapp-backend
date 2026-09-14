@@ -74,8 +74,8 @@ func (s *InvitationService) Send(ctx context.Context, p SendInvitationParams) (I
 	if p.Email == "" {
 		return InvitationView{}, apperror.ErrInvalidInput
 	}
-	if p.Role != models.RoleAdmin && p.Role != models.RoleMember {
-		p.Role = models.RoleMember
+	if p.Role != models.RoleEditor && p.Role != models.RoleViewer {
+		p.Role = models.RoleViewer
 	}
 
 	ws, err := s.wsRepo.GetByID(ctx, p.WorkspaceID)
@@ -85,7 +85,7 @@ func (s *InvitationService) Send(ctx context.Context, p SendInvitationParams) (I
 	if ws.OwnerID != p.InviterID {
 		// only owner can invite
 		member, err := s.wsRepo.GetMember(ctx, p.WorkspaceID, p.InviterID)
-		if err != nil || member.Role != models.RoleAdmin {
+		if err != nil || member.Role != models.RoleEditor {
 			return InvitationView{}, apperror.ErrForbidden
 		}
 	}
@@ -148,7 +148,7 @@ func (s *InvitationService) Cancel(ctx context.Context, invID uuid.UUID, workspa
 	}
 	if ws.OwnerID != requesterID {
 		member, err := s.wsRepo.GetMember(ctx, workspaceID, requesterID)
-		if err != nil || member.Role != models.RoleAdmin {
+		if err != nil || member.Role != models.RoleEditor {
 			return apperror.ErrForbidden
 		}
 	}

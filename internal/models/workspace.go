@@ -15,3 +15,9 @@ type Workspace struct {
 	UpdatedAt time.Time
 }
 
+// WorkspaceWithRole pairs a workspace with the requesting user's role in it.
+type WorkspaceWithRole struct {
+	Workspace
+	Role string
+}
+

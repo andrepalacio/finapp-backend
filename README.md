@@ -119,7 +119,7 @@ finapp-backend/
 **Fecha:** 2026-04-12
 **Estado:** Aceptado
 
-**Contexto:** Los workspaces tienen roles: `owner`, `admin`, `member`.
+**Contexto:** Los workspaces tienen roles: `owner`, `editor`, `viewer`.
 
 **Decision:** Enforced a nivel de base de datos con un indice unico parcial sobre `workspace_members(workspace_id) WHERE role = 'owner'`.
 

@@ -15,7 +15,7 @@ type WorkspaceRepository interface {
 	AddMember(ctx context.Context, workspaceID, userID uuid.UUID, role string) error
 	GetByID(ctx context.Context, id uuid.UUID) (models.Workspace, error)
 	GetMember(ctx context.Context, workspaceID, userID uuid.UUID) (models.WorkspaceMember, error)
-	ListByUser(ctx context.Context, userID uuid.UUID) ([]models.Workspace, error)
+	ListByUser(ctx context.Context, userID uuid.UUID) ([]models.WorkspaceWithRole, error)
 	Update(ctx context.Context, id uuid.UUID, name, currency string) (models.Workspace, error)
 	Delete(ctx context.Context, id uuid.UUID) error
 	ListMembers(ctx context.Context, workspaceID uuid.UUID) ([]models.WorkspaceMemberWithUser, error)
@@ -38,6 +38,7 @@ type WorkspaceView struct {
 	Currency  string    `json:"currency"`
 	CreatedAt string    `json:"created_at"`
 	UpdatedAt string    `json:"updated_at"`
+	Role      string    `json:"role,omitempty"`
 }
 
 func toWorkspaceView(w models.Workspace) WorkspaceView {
@@ -96,7 +97,8 @@ func (s *WorkspaceService) ListByUser(ctx context.Context, userID uuid.UUID) ([]
 	}
 	out := make([]WorkspaceView, len(workspaces))
 	for i, ws := range workspaces {
-		out[i] = toWorkspaceView(ws)
+		out[i] = toWorkspaceView(ws.Workspace)
+		out[i].Role = ws.Role
 	}
 	return out, nil
 }
@@ -175,7 +177,7 @@ type UpdateMemberRoleParams struct {
 }
 
 func (s *WorkspaceService) UpdateMemberRole(ctx context.Context, p UpdateMemberRoleParams) error {
-	if p.Role != models.RoleAdmin && p.Role != models.RoleMember {
+	if p.Role != models.RoleEditor && p.Role != models.RoleViewer {
 		return apperror.ErrInvalidInput
 	}
 	ws, err := s.repo.GetByID(ctx, p.WorkspaceID)
@@ -202,7 +204,7 @@ func (s *WorkspaceService) RemoveMember(ctx context.Context, workspaceID, target
 	if ws.OwnerID != requesterID {
 		// admins can remove members
 		member, err := s.repo.GetMember(ctx, workspaceID, requesterID)
-		if err != nil || member.Role != models.RoleAdmin {
+		if err != nil || member.Role != models.RoleEditor {
 			return apperror.ErrForbidden
 		}
 	}

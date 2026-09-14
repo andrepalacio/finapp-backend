@@ -232,7 +232,7 @@ func TestWorkspaceHandler_ListMembers(t *testing.T) {
 	wsID := uuid.New()
 	svc := &mockWorkspaceService{
 		listMembersFn: func(_ context.Context, _ uuid.UUID) ([]services.MemberView, error) {
-			return []services.MemberView{{UserID: uuid.New(), Role: "member"}}, nil
+			return []services.MemberView{{UserID: uuid.New(), Role: "viewer"}}, nil
 		},
 	}
 	r := newWorkspaceRouter(svc, userID, true)
@@ -255,7 +255,7 @@ func TestWorkspaceHandler_UpdateMemberRole(t *testing.T) {
 		}
 		r := newWorkspaceRouter(svc, userID, true)
 
-		body, _ := json.Marshal(map[string]string{"role": "admin"})
+		body, _ := json.Marshal(map[string]string{"role": "editor"})
 		req := httptest.NewRequest(http.MethodPut, "/workspaces/"+wsID.String()+"/members/"+targetID.String()+"/role", bytes.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()
@@ -283,7 +283,7 @@ func TestWorkspaceHandler_UpdateMemberRole(t *testing.T) {
 		svc := &mockWorkspaceService{}
 		r := newWorkspaceRouter(svc, userID, true)
 
-		body, _ := json.Marshal(map[string]string{"role": "admin"})
+		body, _ := json.Marshal(map[string]string{"role": "editor"})
 		req := httptest.NewRequest(http.MethodPut, "/workspaces/"+wsID.String()+"/members/not-a-uuid/role", bytes.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()

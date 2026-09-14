@@ -64,7 +64,7 @@ func TestInvitationHandler_Send(t *testing.T) {
 		}
 		r := newInvitationRouter(svc, userID, true)
 
-		body, _ := json.Marshal(map[string]string{"email": "a@b.com", "role": "member"})
+		body, _ := json.Marshal(map[string]string{"email": "a@b.com", "role": "viewer"})
 		req := httptest.NewRequest(http.MethodPost, "/workspaces/"+wsID.String()+"/invitations", bytes.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()

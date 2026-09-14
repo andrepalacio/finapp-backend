@@ -75,13 +75,13 @@ func TestInvitationService_Send(t *testing.T) {
 	}{
 		{
 			name:     "owner invites",
-			params:   SendInvitationParams{WorkspaceID: wsID, Email: "a@b.com", Role: models.RoleMember, InviterID: ownerID},
-			wantRole: models.RoleMember,
+			params:   SendInvitationParams{WorkspaceID: wsID, Email: "a@b.com", Role: models.RoleViewer, InviterID: ownerID},
+			wantRole: models.RoleViewer,
 		},
 		{
 			name:     "invalid role defaults to member",
 			params:   SendInvitationParams{WorkspaceID: wsID, Email: "a@b.com", Role: "bogus", InviterID: ownerID},
-			wantRole: models.RoleMember,
+			wantRole: models.RoleViewer,
 		},
 		{
 			name:    "empty email",
@@ -112,7 +112,7 @@ func TestInvitationService_Send(t *testing.T) {
 				getByIDFn: func(_ context.Context, _ uuid.UUID) (models.Workspace, error) { return ws, nil },
 				getMemberFn: func(_ context.Context, _, userID uuid.UUID) (models.WorkspaceMember, error) {
 					if userID == adminID {
-						return models.WorkspaceMember{Role: models.RoleAdmin}, nil
+						return models.WorkspaceMember{Role: models.RoleEditor}, nil
 					}
 					return models.WorkspaceMember{}, apperror.ErrNotFound
 				},
@@ -148,7 +148,7 @@ func TestInvitationService_Accept(t *testing.T) {
 		{
 			name: "success",
 			inv: models.WorkspaceInvitation{
-				ID: invID, WorkspaceID: wsID, Email: "a@b.com", Role: models.RoleMember,
+				ID: invID, WorkspaceID: wsID, Email: "a@b.com", Role: models.RoleViewer,
 				Token: token, Status: models.InvitationStatusPending, ExpiresAt: time.Now().Add(time.Hour),
 			},
 		},
@@ -218,7 +218,7 @@ func TestInvitationService_Accept_AlreadyMemberIsIdempotent(t *testing.T) {
 	userID := uuid.New()
 	token := uuid.New()
 	inv := models.WorkspaceInvitation{
-		ID: uuid.New(), WorkspaceID: wsID, Email: "a@b.com", Role: models.RoleMember,
+		ID: uuid.New(), WorkspaceID: wsID, Email: "a@b.com", Role: models.RoleViewer,
 		Token: token, Status: models.InvitationStatusPending, ExpiresAt: time.Now().Add(time.Hour),
 	}
 	addMemberCalled := false
@@ -233,7 +233,7 @@ func TestInvitationService_Accept_AlreadyMemberIsIdempotent(t *testing.T) {
 	}
 	wsRepo := &mockInvitationWorkspaceRepo{
 		getMemberFn: func(_ context.Context, _, _ uuid.UUID) (models.WorkspaceMember, error) {
-			return models.WorkspaceMember{Role: models.RoleMember}, nil
+			return models.WorkspaceMember{Role: models.RoleViewer}, nil
 		},
 		addMemberFn: func(_ context.Context, _, _ uuid.UUID, _ string) error {
 			addMemberCalled = true

@@ -15,7 +15,7 @@ SELECT * FROM workspace_members
 WHERE workspace_id = $1 AND user_id = $2;
 
 -- name: ListWorkspacesByUser :many
-SELECT w.* FROM workspaces w
+SELECT w.*, wm.role FROM workspaces w
 JOIN workspace_members wm ON wm.workspace_id = w.id
 WHERE wm.user_id = $1
 ORDER BY w.created_at DESC;

@@ -8,8 +8,8 @@ import (
 
 const (
 	RoleOwner  = "owner"
-	RoleAdmin  = "admin"
-	RoleMember = "member"
+	RoleEditor = "editor"
+	RoleViewer = "viewer"
 )
 
 type WorkspaceMember struct {

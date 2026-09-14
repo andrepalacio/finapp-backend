@@ -64,7 +64,7 @@ type Querier interface {
 	ListTransactions(ctx context.Context, arg ListTransactionsParams) ([]Transaction, error)
 	ListTransactionsByDateCursor(ctx context.Context, arg ListTransactionsByDateCursorParams) ([]Transaction, error)
 	ListWorkspaceMembers(ctx context.Context, workspaceID uuid.UUID) ([]ListWorkspaceMembersRow, error)
-	ListWorkspacesByUser(ctx context.Context, userID uuid.UUID) ([]Workspace, error)
+	ListWorkspacesByUser(ctx context.Context, userID uuid.UUID) ([]ListWorkspacesByUserRow, error)
 	RemoveWorkspaceMember(ctx context.Context, arg RemoveWorkspaceMemberParams) error
 	UpdateCategory(ctx context.Context, arg UpdateCategoryParams) (Category, error)
 	UpdateDebt(ctx context.Context, arg UpdateDebtParams) (Debt, error)

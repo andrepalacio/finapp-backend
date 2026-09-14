@@ -62,25 +62,32 @@ func TestWorkspaceRepository_MembersAndIsMember(t *testing.T) {
 	// Owner is not auto-added as a member by Create; verify IsMember false until explicitly added.
 	assert.False(t, wsRepo.IsMember(context.Background(), ws.ID, memberID))
 
-	err = wsRepo.AddMember(context.Background(), ws.ID, memberID, "member")
+	err = wsRepo.AddMember(context.Background(), ws.ID, memberID, "viewer")
 	require.NoError(t, err)
 
 	assert.True(t, wsRepo.IsMember(context.Background(), ws.ID, memberID))
 
 	member, err := wsRepo.GetMember(context.Background(), ws.ID, memberID)
 	require.NoError(t, err)
-	assert.Equal(t, "member", member.Role)
+	assert.Equal(t, "viewer", member.Role)
+
+	role, ok := wsRepo.GetMemberRole(context.Background(), ws.ID, memberID)
+	assert.True(t, ok)
+	assert.Equal(t, "viewer", role)
+
+	_, ok = wsRepo.GetMemberRole(context.Background(), ws.ID, ownerID)
+	assert.False(t, ok)
 
 	members, err := wsRepo.ListMembers(context.Background(), ws.ID)
 	require.NoError(t, err)
 	assert.Len(t, members, 1)
 	assert.Equal(t, memberID, members[0].UserID)
 
-	err = wsRepo.UpdateMemberRole(context.Background(), ws.ID, memberID, "admin")
+	err = wsRepo.UpdateMemberRole(context.Background(), ws.ID, memberID, "editor")
 	require.NoError(t, err)
 	member, err = wsRepo.GetMember(context.Background(), ws.ID, memberID)
 	require.NoError(t, err)
-	assert.Equal(t, "admin", member.Role)
+	assert.Equal(t, "editor", member.Role)
 
 	err = wsRepo.RemoveMember(context.Background(), ws.ID, memberID)
 	require.NoError(t, err)
@@ -105,6 +112,7 @@ func TestWorkspaceRepository_ListByUser(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, list, 1)
 	assert.Equal(t, ws1.ID, list[0].ID)
+	assert.Equal(t, "owner", list[0].Role)
 }
 
 func TestWorkspaceRepository_Update(t *testing.T) {

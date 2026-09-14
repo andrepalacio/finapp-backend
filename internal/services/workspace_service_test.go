@@ -17,7 +17,7 @@ type mockWorkspaceRepo struct {
 	addMemberFn func(ctx context.Context, workspaceID, userID uuid.UUID, role string) error
 	getByIDFn   func(ctx context.Context, id uuid.UUID) (models.Workspace, error)
 	getMemberFn func(ctx context.Context, workspaceID, userID uuid.UUID) (models.WorkspaceMember, error)
-	listByUserFn func(ctx context.Context, userID uuid.UUID) ([]models.Workspace, error)
+	listByUserFn func(ctx context.Context, userID uuid.UUID) ([]models.WorkspaceWithRole, error)
 	updateFn    func(ctx context.Context, id uuid.UUID, name, currency string) (models.Workspace, error)
 	deleteFn    func(ctx context.Context, id uuid.UUID) error
 }
@@ -34,7 +34,7 @@ func (m *mockWorkspaceRepo) GetByID(ctx context.Context, id uuid.UUID) (models.W
 func (m *mockWorkspaceRepo) GetMember(ctx context.Context, workspaceID, userID uuid.UUID) (models.WorkspaceMember, error) {
 	return m.getMemberFn(ctx, workspaceID, userID)
 }
-func (m *mockWorkspaceRepo) ListByUser(ctx context.Context, userID uuid.UUID) ([]models.Workspace, error) {
+func (m *mockWorkspaceRepo) ListByUser(ctx context.Context, userID uuid.UUID) ([]models.WorkspaceWithRole, error) {
 	return m.listByUserFn(ctx, userID)
 }
 func (m *mockWorkspaceRepo) Update(ctx context.Context, id uuid.UUID, name, currency string) (models.Workspace, error) {

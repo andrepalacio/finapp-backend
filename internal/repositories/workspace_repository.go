@@ -80,14 +80,24 @@ func (r *WorkspaceRepository) GetMember(ctx context.Context, workspaceID, userID
 	}, nil
 }
 
-func (r *WorkspaceRepository) ListByUser(ctx context.Context, userID uuid.UUID) ([]models.Workspace, error) {
+func (r *WorkspaceRepository) ListByUser(ctx context.Context, userID uuid.UUID) ([]models.WorkspaceWithRole, error) {
 	rows, err := r.q.ListWorkspacesByUser(ctx, userID)
 	if err != nil {
 		return nil, apperror.Wrap(apperror.ErrInternal, err)
 	}
-	out := make([]models.Workspace, len(rows))
+	out := make([]models.WorkspaceWithRole, len(rows))
 	for i, row := range rows {
-		out[i] = toWorkspaceModel(row)
+		out[i] = models.WorkspaceWithRole{
+			Workspace: models.Workspace{
+				ID:        row.ID,
+				Name:      row.Name,
+				OwnerID:   row.OwnerID,
+				Currency:  row.Currency,
+				CreatedAt: row.CreatedAt.Time,
+				UpdatedAt: row.UpdatedAt.Time,
+			},
+			Role: row.Role,
+		}
 	}
 	return out, nil
 }
@@ -110,6 +120,14 @@ func (r *WorkspaceRepository) Update(ctx context.Context, id uuid.UUID, name, cu
 func (r *WorkspaceRepository) IsMember(ctx context.Context, workspaceID, userID uuid.UUID) bool {
 	_, err := r.GetMember(ctx, workspaceID, userID)
 	return err == nil
+}
+
+func (r *WorkspaceRepository) GetMemberRole(ctx context.Context, workspaceID, userID uuid.UUID) (string, bool) {
+	m, err := r.GetMember(ctx, workspaceID, userID)
+	if err != nil {
+		return "", false
+	}
+	return m.Role, true
 }
 
 func (r *WorkspaceRepository) Delete(ctx context.Context, id uuid.UUID) error {

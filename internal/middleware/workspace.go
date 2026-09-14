@@ -12,6 +12,10 @@ type MemberChecker interface {
 	IsMember(ctx context.Context, workspaceID, userID uuid.UUID) bool
 }
 
+type RoleChecker interface {
+	GetMemberRole(ctx context.Context, workspaceID, userID uuid.UUID) (string, bool)
+}
+
 const workspaceIDKey = "workspaceID"
 
 func WorkspaceIDFromContext(c *gin.Context) uuid.UUID {
@@ -53,5 +57,35 @@ func WorkspaceMiddleware(checker MemberChecker) gin.HandlerFunc {
 
 		c.Set(workspaceIDKey, wsID)
 		c.Next()
+	}
+}
+
+// RequireRole restricts access to workspace members whose role is in allowed.
+// Must run after AuthMiddleware and WorkspaceMiddleware.
+func RequireRole(checker RoleChecker, allowed ...string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		wsID := WorkspaceIDFromContext(c)
+		userID := UserIDFromContext(c)
+
+		role, ok := checker.GetMemberRole(c.Request.Context(), wsID, userID)
+		if !ok {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
+				"error": "not a member of this workspace",
+				"code":  "FORBIDDEN",
+			})
+			return
+		}
+
+		for _, r := range allowed {
+			if r == role {
+				c.Next()
+				return
+			}
+		}
+
+		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
+			"error": "insufficient role for this action",
+			"code":  "FORBIDDEN",
+		})
 	}
 }

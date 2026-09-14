@@ -247,3 +247,83 @@ func TestWorkspaceMiddleware(t *testing.T) {
 		})
 	}
 }
+
+type mockRoleChecker struct {
+	role string
+	ok   bool
+}
+
+func (m *mockRoleChecker) GetMemberRole(_ context.Context, _, _ uuid.UUID) (string, bool) {
+	return m.role, m.ok
+}
+
+func TestRequireRole(t *testing.T) {
+	wsID := uuid.New()
+	userID := uuid.New()
+
+	tests := []struct {
+		name           string
+		role           string
+		ok             bool
+		allowed        []string
+		wantStatus     int
+		wantNextCalled bool
+	}{
+		{
+			name:           "not a member",
+			ok:             false,
+			allowed:        []string{"owner", "editor"},
+			wantStatus:     http.StatusForbidden,
+			wantNextCalled: false,
+		},
+		{
+			name:           "viewer role not allowed",
+			role:           "viewer",
+			ok:             true,
+			allowed:        []string{"owner", "editor"},
+			wantStatus:     http.StatusForbidden,
+			wantNextCalled: false,
+		},
+		{
+			name:           "editor role allowed",
+			role:           "editor",
+			ok:             true,
+			allowed:        []string{"owner", "editor"},
+			wantStatus:     http.StatusOK,
+			wantNextCalled: true,
+		},
+		{
+			name:           "owner role allowed",
+			role:           "owner",
+			ok:             true,
+			allowed:        []string{"owner", "editor"},
+			wantStatus:     http.StatusOK,
+			wantNextCalled: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			nextCalled := false
+			checker := &mockRoleChecker{role: tt.role, ok: tt.ok}
+
+			r := gin.New()
+			r.Use(func(c *gin.Context) {
+				c.Set(workspaceIDKey, wsID)
+				c.Set(userIDKey, userID)
+				c.Next()
+			})
+			r.GET("/x", RequireRole(checker, tt.allowed...), func(c *gin.Context) {
+				nextCalled = true
+				c.Status(http.StatusOK)
+			})
+
+			req := httptest.NewRequest(http.MethodGet, "/x", nil)
+			w := httptest.NewRecorder()
+			r.ServeHTTP(w, req)
+
+			assert.Equal(t, tt.wantStatus, w.Code)
+			assert.Equal(t, tt.wantNextCalled, nextCalled)
+		})
+	}
+}

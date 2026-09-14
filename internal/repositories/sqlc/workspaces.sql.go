@@ -148,21 +148,31 @@ func (q *Queries) ListWorkspaceMembers(ctx context.Context, workspaceID uuid.UUI
 }
 
 const listWorkspacesByUser = `-- name: ListWorkspacesByUser :many
-SELECT w.id, w.name, w.owner_id, w.created_at, w.updated_at, w.currency FROM workspaces w
+SELECT w.id, w.name, w.owner_id, w.created_at, w.updated_at, w.currency, wm.role FROM workspaces w
 JOIN workspace_members wm ON wm.workspace_id = w.id
 WHERE wm.user_id = $1
 ORDER BY w.created_at DESC
 `
 
-func (q *Queries) ListWorkspacesByUser(ctx context.Context, userID uuid.UUID) ([]Workspace, error) {
+type ListWorkspacesByUserRow struct {
+	ID        uuid.UUID          `json:"id"`
+	Name      string             `json:"name"`
+	OwnerID   uuid.UUID          `json:"owner_id"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+	Currency  string             `json:"currency"`
+	Role      string             `json:"role"`
+}
+
+func (q *Queries) ListWorkspacesByUser(ctx context.Context, userID uuid.UUID) ([]ListWorkspacesByUserRow, error) {
 	rows, err := q.db.Query(ctx, listWorkspacesByUser, userID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []Workspace{}
+	items := []ListWorkspacesByUserRow{}
 	for rows.Next() {
-		var i Workspace
+		var i ListWorkspacesByUserRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.Name,
@@ -170,6 +180,7 @@ func (q *Queries) ListWorkspacesByUser(ctx context.Context, userID uuid.UUID) ([
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.Currency,
+			&i.Role,
 		); err != nil {
 			return nil, err
 		}
