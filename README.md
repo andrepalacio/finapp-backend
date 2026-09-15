@@ -2,7 +2,7 @@
 
 API REST para FinApp — finanzas personales con soporte multi-usuario y workspaces compartidos.
 
-**Stack:** Go 1.22 + Gin + sqlc + PostgreSQL 16 + Redis 7
+**Stack:** Go 1.26 + Gin + sqlc + PostgreSQL 16 + Redis 7
 
 ---
 
