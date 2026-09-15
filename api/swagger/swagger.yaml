@@ -1,5 +1,43 @@
 basePath: /api/v1
 definitions:
+  handlers.Alert:
+    properties:
+      category_id:
+        type: string
+      category_name:
+        type: string
+      limit:
+        type: number
+      message:
+        type: string
+      overage:
+        type: number
+      spent:
+        type: number
+      type:
+        type: string
+    type: object
+  handlers.AlertsResponse:
+    properties:
+      alerts:
+        items:
+          $ref: '#/definitions/handlers.Alert'
+        type: array
+      month:
+        type: integer
+      year:
+        type: integer
+    type: object
+  handlers.ChangePasswordRequest:
+    properties:
+      current_password:
+        type: string
+      new_password:
+        type: string
+    required:
+    - current_password
+    - new_password
+    type: object
   handlers.UpdateProfileRequest:
     properties:
       email:
@@ -44,6 +82,10 @@ definitions:
       installments:
         minimum: 1
         type: integer
+      insurance_rate:
+        type: number
+      insurance_type:
+        type: string
       lender:
         type: string
       name:
@@ -124,6 +166,38 @@ definitions:
     required:
     - name
     type: object
+  handlers.importRowResult:
+    properties:
+      amount:
+        type: number
+      category:
+        type: string
+      date:
+        type: string
+      description:
+        type: string
+      error:
+        type: string
+      row:
+        type: integer
+      type:
+        type: string
+      valid:
+        type: boolean
+    type: object
+  handlers.importSummary:
+    properties:
+      imported:
+        type: integer
+      rows:
+        items:
+          $ref: '#/definitions/handlers.importRowResult'
+        type: array
+      skipped:
+        type: integer
+      total:
+        type: integer
+    type: object
   handlers.loginRequest:
     properties:
       email:
@@ -171,6 +245,15 @@ definitions:
     - name
     - password
     type: object
+  handlers.sendInvitationRequest:
+    properties:
+      email:
+        type: string
+      role:
+        type: string
+    required:
+    - email
+    type: object
   handlers.tokenResponse:
     properties:
       access_token:
@@ -200,6 +283,10 @@ definitions:
       installments:
         minimum: 1
         type: integer
+      insurance_rate:
+        type: number
+      insurance_type:
+        type: string
       lender:
         type: string
       name:
@@ -219,6 +306,13 @@ definitions:
     - name
     - principal
     - rate_type
+    type: object
+  handlers.updateMemberRoleRequest:
+    properties:
+      role:
+        type: string
+    required:
+    - role
     type: object
   handlers.updatePaymentRequest:
     properties:
@@ -295,6 +389,10 @@ definitions:
         type: string
       installments:
         type: integer
+      insurance_rate:
+        type: number
+      insurance_type:
+        type: string
       lender:
         type: string
       name:
@@ -335,6 +433,8 @@ definitions:
         type: number
       due_date:
         type: string
+      insurance:
+        type: number
       interest:
         type: number
       paid_amount:
@@ -349,6 +449,8 @@ definitions:
         type: number
       status:
         type: string
+      total:
+        type: number
     type: object
   models.SavingsContribution:
     properties:
@@ -481,6 +583,51 @@ definitions:
       transaction_count:
         type: integer
     type: object
+  services.InvitationView:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      expires_at:
+        type: string
+      id:
+        type: string
+      invited_by:
+        type: string
+      role:
+        type: string
+      status:
+        type: string
+      token:
+        type: string
+      workspace_id:
+        type: string
+    type: object
+  services.MemberView:
+    properties:
+      email:
+        type: string
+      joined_at:
+        type: string
+      name:
+        type: string
+      role:
+        type: string
+      user_id:
+        type: string
+    type: object
+  services.MonthSummaryView:
+    properties:
+      expense_count:
+        type: integer
+      expense_total:
+        type: number
+      income_count:
+        type: integer
+      income_total:
+        type: number
+    type: object
   services.SavingsGoalProgress:
     properties:
       created_at:
@@ -573,6 +720,8 @@ definitions:
       name:
         type: string
       owner_id:
+        type: string
+      role:
         type: string
       updated_at:
         type: string
@@ -710,6 +859,95 @@ paths:
       summary: Registrar usuario
       tags:
       - auth
+  /invitations/accept:
+    get:
+      parameters:
+      - description: Invitation token (UUID)
+        in: query
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/services.InvitationView'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Accept workspace invitation
+      tags:
+      - invitations
+  /user:
+    delete:
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Eliminar cuenta del usuario autenticado
+      tags:
+      - user
+  /user/password:
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Contraseña actual y nueva
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.ChangePasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Cambiar contraseña del usuario autenticado
+      tags:
+      - user
   /user/profile:
     get:
       produces:
@@ -896,6 +1134,26 @@ paths:
       summary: Update workspace
       tags:
       - workspaces
+  /workspaces/{workspace_id}/alerts:
+    get:
+      parameters:
+      - description: Workspace ID
+        in: path
+        name: workspace_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.AlertsResponse'
+      security:
+      - BearerAuth: []
+      summary: Get budget alerts for current month
+      tags:
+      - budgets
   /workspaces/{workspace_id}/budgets:
     get:
       parameters:
@@ -1506,6 +1764,214 @@ paths:
       summary: Get amortization schedule
       tags:
       - debts
+  /workspaces/{workspace_id}/invitations:
+    get:
+      parameters:
+      - description: Workspace ID
+        in: path
+        name: workspace_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/services.InvitationView'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: List pending invitations
+      tags:
+      - invitations
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Workspace ID
+        in: path
+        name: workspace_id
+        required: true
+        type: string
+      - description: Invitation data
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.sendInvitationRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/services.InvitationView'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Send workspace invitation
+      tags:
+      - invitations
+  /workspaces/{workspace_id}/invitations/{invitation_id}:
+    delete:
+      parameters:
+      - description: Workspace ID
+        in: path
+        name: workspace_id
+        required: true
+        type: string
+      - description: Invitation ID
+        in: path
+        name: invitation_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Cancel workspace invitation
+      tags:
+      - invitations
+  /workspaces/{workspace_id}/members:
+    get:
+      parameters:
+      - description: Workspace ID
+        in: path
+        name: workspace_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/services.MemberView'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: List workspace members
+      tags:
+      - workspaces
+  /workspaces/{workspace_id}/members/{user_id}:
+    delete:
+      parameters:
+      - description: Workspace ID
+        in: path
+        name: workspace_id
+        required: true
+        type: string
+      - description: User ID
+        in: path
+        name: user_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Remove workspace member
+      tags:
+      - workspaces
+  /workspaces/{workspace_id}/members/{user_id}/role:
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Workspace ID
+        in: path
+        name: workspace_id
+        required: true
+        type: string
+      - description: User ID
+        in: path
+        name: user_id
+        required: true
+        type: string
+      - description: Role
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.updateMemberRoleRequest'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update member role
+      tags:
+      - workspaces
   /workspaces/{workspace_id}/savings-goals:
     get:
       parameters:
@@ -1723,6 +2189,34 @@ paths:
       summary: Delete contribution
       tags:
       - savings
+  /workspaces/{workspace_id}/summary:
+    get:
+      parameters:
+      - description: Workspace ID
+        in: path
+        name: workspace_id
+        required: true
+        type: string
+      - description: Start date YYYY-MM-DD
+        in: query
+        name: date_from
+        type: string
+      - description: End date YYYY-MM-DD
+        in: query
+        name: date_to
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/services.MonthSummaryView'
+      security:
+      - BearerAuth: []
+      summary: Monthly workspace summary
+      tags:
+      - workspaces
   /workspaces/{workspace_id}/transactions:
     get:
       parameters:
@@ -1928,6 +2422,55 @@ paths:
       security:
       - BearerAuth: []
       summary: List transactions by date (cursor pagination)
+      tags:
+      - transactions
+  /workspaces/{workspace_id}/transactions/import:
+    post:
+      consumes:
+      - multipart/form-data
+      parameters:
+      - description: Workspace ID
+        in: path
+        name: workspace_id
+        required: true
+        type: string
+      - description: XLSX file
+        in: formData
+        name: file
+        required: true
+        type: file
+      - description: Preview only, do not save
+        in: query
+        name: dry_run
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.importSummary'
+      security:
+      - BearerAuth: []
+      summary: Import transactions from XLSX
+      tags:
+      - transactions
+  /workspaces/{workspace_id}/transactions/import/template:
+    get:
+      parameters:
+      - description: Workspace ID
+        in: path
+        name: workspace_id
+        required: true
+        type: string
+      produces:
+      - application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+      responses:
+        "200":
+          description: OK
+      security:
+      - BearerAuth: []
+      summary: Download import template
       tags:
       - transactions
   /workspaces/{workspace_id}/transactions/summary:
