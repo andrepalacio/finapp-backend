@@ -247,5 +247,5 @@ LOG_LEVEL=debug         # debug | info | warn | error
 - [ ] Repository con query sqlc
 - [ ] Tests del servicio (table-driven, con mock del repo)
 - [ ] Test de integración del handler (al menos happy path y error case)
-- [ ] Endpoint documentado en api-spec.yaml
+- [ ] Endpoint documentado con anotaciones swaggo + `make swagger` corrido (regenera `api/swagger/`)
 - [ ] `make lint` sin errores
