@@ -4,16 +4,17 @@ import (
 	"os"
 	"time"
 
-	"github.com/andrespalacio/finapp-backend/internal/handlers"
-	"github.com/andrespalacio/finapp-backend/internal/middleware"
-	"github.com/andrespalacio/finapp-backend/internal/models"
-	"github.com/andrespalacio/finapp-backend/internal/repositories"
-	pkgauth "github.com/andrespalacio/finapp-backend/pkg/auth"
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 	"go.uber.org/zap"
+
+	"github.com/andrespalacio/finapp-backend/internal/handlers"
+	"github.com/andrespalacio/finapp-backend/internal/middleware"
+	"github.com/andrespalacio/finapp-backend/internal/models"
+	"github.com/andrespalacio/finapp-backend/internal/repositories"
+	pkgauth "github.com/andrespalacio/finapp-backend/pkg/auth"
 )
 
 type handlerSet struct {

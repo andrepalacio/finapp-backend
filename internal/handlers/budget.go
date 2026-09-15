@@ -5,11 +5,12 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
+
 	"github.com/andrespalacio/finapp-backend/internal/middleware"
 	"github.com/andrespalacio/finapp-backend/internal/services"
 	"github.com/andrespalacio/finapp-backend/pkg/response"
-	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 )
 
 type budgetService interface {
@@ -30,7 +31,7 @@ func NewBudgetHandler(svc budgetService) *BudgetHandler {
 }
 
 type upsertBudgetRequest struct {
-	TotalLimit float64                       `json:"total_limit" binding:"required,gt=0"`
+	TotalLimit float64                        `json:"total_limit" binding:"required,gt=0"`
 	Categories []services.BudgetCategoryInput `json:"categories"`
 }
 

@@ -5,12 +5,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/andrespalacio/finapp-backend/internal/models"
-	"github.com/andrespalacio/finapp-backend/internal/repositories"
-	"github.com/andrespalacio/finapp-backend/pkg/apperror"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/crypto/bcrypt"
+
+	"github.com/andrespalacio/finapp-backend/internal/models"
+	"github.com/andrespalacio/finapp-backend/internal/repositories"
+	"github.com/andrespalacio/finapp-backend/pkg/apperror"
 )
 
 type mockUserRepository struct {

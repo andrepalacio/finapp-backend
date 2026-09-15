@@ -5,11 +5,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/andrespalacio/finapp-backend/internal/models"
 	"github.com/andrespalacio/finapp-backend/internal/repositories"
 	"github.com/andrespalacio/finapp-backend/pkg/apperror"
-	"github.com/google/uuid"
-	"github.com/stretchr/testify/assert"
 )
 
 type mockSavingsRepo struct {
@@ -259,7 +260,7 @@ func TestSavingsService_GetWithProgress(t *testing.T) {
 	goal := makeSavingsGoal(wsID)
 
 	repo := &mockSavingsRepo{
-		getByIDFn: func(_ context.Context, _ uuid.UUID) (models.SavingsGoal, error) { return goal, nil },
+		getByIDFn:          func(_ context.Context, _ uuid.UUID) (models.SavingsGoal, error) { return goal, nil },
 		totalContributedFn: func(_ context.Context, _ uuid.UUID) (float64, error) { return 2000000, nil },
 	}
 	svc := NewSavingsService(repo)

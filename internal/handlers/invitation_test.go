@@ -8,12 +8,13 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/andrespalacio/finapp-backend/internal/middleware"
-	"github.com/andrespalacio/finapp-backend/internal/services"
-	"github.com/andrespalacio/finapp-backend/pkg/apperror"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/andrespalacio/finapp-backend/internal/middleware"
+	"github.com/andrespalacio/finapp-backend/internal/services"
+	"github.com/andrespalacio/finapp-backend/pkg/apperror"
 )
 
 type mockInvitationService struct {
@@ -36,14 +37,14 @@ func (m *mockInvitationService) ListPending(ctx context.Context, workspaceID uui
 	return m.listPendingFn(ctx, workspaceID)
 }
 
-func newInvitationRouter(svc *mockInvitationService, userID uuid.UUID, isMember bool) *gin.Engine {
+func newInvitationRouter(svc *mockInvitationService, userID uuid.UUID) *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	h := NewInvitationHandler(svc)
 	r := gin.New()
 
 	r.GET("/invitations/accept", withUserID(userID), h.Accept)
 
-	wsGroup := r.Group("/workspaces/:workspace_id", withUserID(userID), middleware.WorkspaceMiddleware(stubMemberChecker{isMember: isMember}))
+	wsGroup := r.Group("/workspaces/:workspace_id", withUserID(userID), middleware.WorkspaceMiddleware(stubMemberChecker{isMember: true}))
 	{
 		wsGroup.POST("/invitations", h.Send)
 		wsGroup.GET("/invitations", h.ListPending)
@@ -62,7 +63,7 @@ func TestInvitationHandler_Send(t *testing.T) {
 				return services.InvitationView{ID: uuid.New(), WorkspaceID: p.WorkspaceID, Email: p.Email}, nil
 			},
 		}
-		r := newInvitationRouter(svc, userID, true)
+		r := newInvitationRouter(svc, userID)
 
 		body, _ := json.Marshal(map[string]string{"email": "a@b.com", "role": "viewer"})
 		req := httptest.NewRequest(http.MethodPost, "/workspaces/"+wsID.String()+"/invitations", bytes.NewReader(body))
@@ -75,7 +76,7 @@ func TestInvitationHandler_Send(t *testing.T) {
 
 	t.Run("malformed email rejected by binding", func(t *testing.T) {
 		svc := &mockInvitationService{}
-		r := newInvitationRouter(svc, userID, true)
+		r := newInvitationRouter(svc, userID)
 
 		body, _ := json.Marshal(map[string]string{"email": "not-an-email"})
 		req := httptest.NewRequest(http.MethodPost, "/workspaces/"+wsID.String()+"/invitations", bytes.NewReader(body))
@@ -92,7 +93,7 @@ func TestInvitationHandler_Send(t *testing.T) {
 				return services.InvitationView{}, apperror.ErrForbidden
 			},
 		}
-		r := newInvitationRouter(svc, userID, true)
+		r := newInvitationRouter(svc, userID)
 
 		body, _ := json.Marshal(map[string]string{"email": "a@b.com"})
 		req := httptest.NewRequest(http.MethodPost, "/workspaces/"+wsID.String()+"/invitations", bytes.NewReader(body))
@@ -114,7 +115,7 @@ func TestInvitationHandler_Accept(t *testing.T) {
 				return services.InvitationView{ID: uuid.New(), Token: tok, Status: "accepted"}, nil
 			},
 		}
-		r := newInvitationRouter(svc, userID, true)
+		r := newInvitationRouter(svc, userID)
 
 		req := httptest.NewRequest(http.MethodGet, "/invitations/accept?token="+token.String(), nil)
 		w := httptest.NewRecorder()
@@ -125,7 +126,7 @@ func TestInvitationHandler_Accept(t *testing.T) {
 
 	t.Run("invalid token format", func(t *testing.T) {
 		svc := &mockInvitationService{}
-		r := newInvitationRouter(svc, userID, true)
+		r := newInvitationRouter(svc, userID)
 
 		req := httptest.NewRequest(http.MethodGet, "/invitations/accept?token=not-a-uuid", nil)
 		w := httptest.NewRecorder()
@@ -140,7 +141,7 @@ func TestInvitationHandler_Accept(t *testing.T) {
 				return services.InvitationView{}, apperror.WithMessage(apperror.ErrInvalidInput, "invitation expired")
 			},
 		}
-		r := newInvitationRouter(svc, userID, true)
+		r := newInvitationRouter(svc, userID)
 
 		req := httptest.NewRequest(http.MethodGet, "/invitations/accept?token="+uuid.New().String(), nil)
 		w := httptest.NewRecorder()
@@ -159,7 +160,7 @@ func TestInvitationHandler_Cancel(t *testing.T) {
 		svc := &mockInvitationService{
 			cancelFn: func(_ context.Context, _, _, _ uuid.UUID) error { return nil },
 		}
-		r := newInvitationRouter(svc, userID, true)
+		r := newInvitationRouter(svc, userID)
 
 		req := httptest.NewRequest(http.MethodDelete, "/workspaces/"+wsID.String()+"/invitations/"+invID.String(), nil)
 		w := httptest.NewRecorder()
@@ -170,7 +171,7 @@ func TestInvitationHandler_Cancel(t *testing.T) {
 
 	t.Run("invalid invitation_id", func(t *testing.T) {
 		svc := &mockInvitationService{}
-		r := newInvitationRouter(svc, userID, true)
+		r := newInvitationRouter(svc, userID)
 
 		req := httptest.NewRequest(http.MethodDelete, "/workspaces/"+wsID.String()+"/invitations/not-a-uuid", nil)
 		w := httptest.NewRecorder()
@@ -183,7 +184,7 @@ func TestInvitationHandler_Cancel(t *testing.T) {
 		svc := &mockInvitationService{
 			cancelFn: func(_ context.Context, _, _, _ uuid.UUID) error { return apperror.ErrNotFound },
 		}
-		r := newInvitationRouter(svc, userID, true)
+		r := newInvitationRouter(svc, userID)
 
 		req := httptest.NewRequest(http.MethodDelete, "/workspaces/"+wsID.String()+"/invitations/"+invID.String(), nil)
 		w := httptest.NewRecorder()
@@ -201,7 +202,7 @@ func TestInvitationHandler_ListPending(t *testing.T) {
 			return []services.InvitationView{{ID: uuid.New(), Email: "a@b.com"}}, nil
 		},
 	}
-	r := newInvitationRouter(svc, userID, true)
+	r := newInvitationRouter(svc, userID)
 
 	req := httptest.NewRequest(http.MethodGet, "/workspaces/"+wsID.String()+"/invitations", nil)
 	w := httptest.NewRecorder()

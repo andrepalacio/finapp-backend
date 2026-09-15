@@ -5,19 +5,20 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/andrespalacio/finapp-backend/internal/models"
 	"github.com/andrespalacio/finapp-backend/internal/repositories"
 	"github.com/andrespalacio/finapp-backend/pkg/apperror"
-	"github.com/google/uuid"
-	"github.com/stretchr/testify/assert"
 )
 
 type mockCategoryRepo struct {
-	createFn         func(ctx context.Context, p repositories.CreateCategoryParams) (models.Category, error)
-	getByIDFn        func(ctx context.Context, id uuid.UUID) (models.Category, error)
+	createFn           func(ctx context.Context, p repositories.CreateCategoryParams) (models.Category, error)
+	getByIDFn          func(ctx context.Context, id uuid.UUID) (models.Category, error)
 	listForWorkspaceFn func(ctx context.Context, workspaceID uuid.UUID) ([]models.Category, error)
-	updateFn         func(ctx context.Context, p repositories.UpdateCategoryParams) (models.Category, error)
-	deleteFn         func(ctx context.Context, id, workspaceID uuid.UUID) error
+	updateFn           func(ctx context.Context, p repositories.UpdateCategoryParams) (models.Category, error)
+	deleteFn           func(ctx context.Context, id, workspaceID uuid.UUID) error
 }
 
 func (m *mockCategoryRepo) Create(ctx context.Context, p repositories.CreateCategoryParams) (models.Category, error) {

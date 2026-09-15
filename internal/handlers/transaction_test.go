@@ -6,14 +6,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/andrespalacio/finapp-backend/internal/middleware"
-	"github.com/andrespalacio/finapp-backend/internal/repositories"
-	"github.com/andrespalacio/finapp-backend/internal/services"
-	pkgauth "github.com/andrespalacio/finapp-backend/pkg/auth"
-	"github.com/andrespalacio/finapp-backend/pkg/apperror"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/andrespalacio/finapp-backend/internal/middleware"
+	"github.com/andrespalacio/finapp-backend/internal/repositories"
+	"github.com/andrespalacio/finapp-backend/internal/services"
+	"github.com/andrespalacio/finapp-backend/pkg/apperror"
+	pkgauth "github.com/andrespalacio/finapp-backend/pkg/auth"
 )
 
 type mockTransactionServiceForHandler struct {

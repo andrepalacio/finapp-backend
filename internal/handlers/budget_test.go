@@ -9,14 +9,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/andrespalacio/finapp-backend/internal/middleware"
-	"github.com/andrespalacio/finapp-backend/internal/services"
-	pkgauth "github.com/andrespalacio/finapp-backend/pkg/auth"
-	"github.com/andrespalacio/finapp-backend/pkg/apperror"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/andrespalacio/finapp-backend/internal/middleware"
+	"github.com/andrespalacio/finapp-backend/internal/services"
+	"github.com/andrespalacio/finapp-backend/pkg/apperror"
+	pkgauth "github.com/andrespalacio/finapp-backend/pkg/auth"
 )
 
 type mockMemberChecker struct{ ok bool }
@@ -24,12 +25,12 @@ type mockMemberChecker struct{ ok bool }
 func (m mockMemberChecker) IsMember(_ context.Context, _, _ uuid.UUID) bool { return m.ok }
 
 type mockBudgetService struct {
-	upsertFn         func(ctx context.Context, p services.UpsertBudgetParams) (services.BudgetView, error)
-	listFn           func(ctx context.Context, workspaceID uuid.UUID) ([]services.BudgetView, error)
+	upsertFn          func(ctx context.Context, p services.UpsertBudgetParams) (services.BudgetView, error)
+	listFn            func(ctx context.Context, workspaceID uuid.UUID) ([]services.BudgetView, error)
 	getWithProgressFn func(ctx context.Context, workspaceID uuid.UUID, year, month int16) (services.BudgetView, error)
-	deleteFn         func(ctx context.Context, workspaceID uuid.UUID, year, month int16) error
-	upsertCategoryFn func(ctx context.Context, workspaceID uuid.UUID, year, month int16, cat services.BudgetCategoryInput) error
-	deleteCategoryFn func(ctx context.Context, workspaceID uuid.UUID, year, month int16, categoryID uuid.UUID) error
+	deleteFn          func(ctx context.Context, workspaceID uuid.UUID, year, month int16) error
+	upsertCategoryFn  func(ctx context.Context, workspaceID uuid.UUID, year, month int16, cat services.BudgetCategoryInput) error
+	deleteCategoryFn  func(ctx context.Context, workspaceID uuid.UUID, year, month int16, categoryID uuid.UUID) error
 }
 
 func (m *mockBudgetService) Upsert(ctx context.Context, p services.UpsertBudgetParams) (services.BudgetView, error) {
@@ -51,7 +52,7 @@ func (m *mockBudgetService) DeleteCategory(ctx context.Context, workspaceID uuid
 	return m.deleteCategoryFn(ctx, workspaceID, year, month, categoryID)
 }
 
-func newBudgetTestRouter(t *testing.T, svc budgetService, allowed bool) (*gin.Engine, string, uuid.UUID) {
+func newBudgetTestRouter(t *testing.T, svc budgetService) (*gin.Engine, string, uuid.UUID) {
 	t.Helper()
 	gin.SetMode(gin.TestMode)
 
@@ -63,7 +64,7 @@ func newBudgetTestRouter(t *testing.T, svc budgetService, allowed bool) (*gin.En
 
 	h := NewBudgetHandler(svc)
 	r := gin.New()
-	grp := r.Group("/workspaces/:workspace_id", middleware.AuthMiddleware(jwt), middleware.WorkspaceMiddleware(mockMemberChecker{ok: allowed}))
+	grp := r.Group("/workspaces/:workspace_id", middleware.AuthMiddleware(jwt), middleware.WorkspaceMiddleware(mockMemberChecker{ok: true}))
 	grp.PUT("/budgets/:year/:month", h.Upsert)
 	grp.GET("/budgets", h.List)
 	grp.GET("/budgets/:year/:month", h.Get)
@@ -127,7 +128,7 @@ func TestBudgetHandler_Upsert(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			r, token, wsID := newBudgetTestRouter(t, tt.svc, true)
+			r, token, wsID := newBudgetTestRouter(t, tt.svc)
 			w := doReq(r, http.MethodPut, "/workspaces/"+wsID.String()+tt.path, token, tt.body)
 			assert.Equal(t, tt.expectedStatus, w.Code)
 		})
@@ -140,7 +141,7 @@ func TestBudgetHandler_List(t *testing.T) {
 			return []services.BudgetView{{WorkspaceID: workspaceID, Year: 2026, Month: 6}}, nil
 		},
 	}
-	r, token, wsID := newBudgetTestRouter(t, svc, true)
+	r, token, wsID := newBudgetTestRouter(t, svc)
 	w := doReq(r, http.MethodGet, "/workspaces/"+wsID.String()+"/budgets", token, nil)
 	assert.Equal(t, http.StatusOK, w.Code)
 	var got []services.BudgetView
@@ -155,7 +156,7 @@ func TestBudgetHandler_Get(t *testing.T) {
 				return services.BudgetView{WorkspaceID: workspaceID, Year: year, Month: month}, nil
 			},
 		}
-		r, token, wsID := newBudgetTestRouter(t, svc, true)
+		r, token, wsID := newBudgetTestRouter(t, svc)
 		w := doReq(r, http.MethodGet, "/workspaces/"+wsID.String()+"/budgets/2026/6", token, nil)
 		assert.Equal(t, http.StatusOK, w.Code)
 	})
@@ -166,7 +167,7 @@ func TestBudgetHandler_Get(t *testing.T) {
 				return services.BudgetView{}, apperror.ErrNotFound
 			},
 		}
-		r, token, wsID := newBudgetTestRouter(t, svc, true)
+		r, token, wsID := newBudgetTestRouter(t, svc)
 		w := doReq(r, http.MethodGet, "/workspaces/"+wsID.String()+"/budgets/2026/6", token, nil)
 		assert.Equal(t, http.StatusNotFound, w.Code)
 	})
@@ -175,14 +176,14 @@ func TestBudgetHandler_Get(t *testing.T) {
 func TestBudgetHandler_Delete(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		svc := &mockBudgetService{deleteFn: func(_ context.Context, _ uuid.UUID, _, _ int16) error { return nil }}
-		r, token, wsID := newBudgetTestRouter(t, svc, true)
+		r, token, wsID := newBudgetTestRouter(t, svc)
 		w := doReq(r, http.MethodDelete, "/workspaces/"+wsID.String()+"/budgets/2026/6", token, nil)
 		assert.Equal(t, http.StatusNoContent, w.Code)
 	})
 
 	t.Run("not found", func(t *testing.T) {
 		svc := &mockBudgetService{deleteFn: func(_ context.Context, _ uuid.UUID, _, _ int16) error { return apperror.ErrNotFound }}
-		r, token, wsID := newBudgetTestRouter(t, svc, true)
+		r, token, wsID := newBudgetTestRouter(t, svc)
 		w := doReq(r, http.MethodDelete, "/workspaces/"+wsID.String()+"/budgets/2026/6", token, nil)
 		assert.Equal(t, http.StatusNotFound, w.Code)
 	})
@@ -225,7 +226,7 @@ func TestBudgetHandler_UpsertCategory(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			r, token, wsID := newBudgetTestRouter(t, tt.svc, true)
+			r, token, wsID := newBudgetTestRouter(t, tt.svc)
 			w := doReq(r, http.MethodPut, "/workspaces/"+wsID.String()+"/budgets/2026/6/categories/"+tt.catIDInPath, token, tt.body)
 			assert.Equal(t, tt.expectedStatus, w.Code)
 		})
@@ -239,13 +240,13 @@ func TestBudgetHandler_DeleteCategory(t *testing.T) {
 		svc := &mockBudgetService{
 			deleteCategoryFn: func(_ context.Context, _ uuid.UUID, _, _ int16, _ uuid.UUID) error { return nil },
 		}
-		r, token, wsID := newBudgetTestRouter(t, svc, true)
+		r, token, wsID := newBudgetTestRouter(t, svc)
 		w := doReq(r, http.MethodDelete, "/workspaces/"+wsID.String()+"/budgets/2026/6/categories/"+catID.String(), token, nil)
 		assert.Equal(t, http.StatusNoContent, w.Code)
 	})
 
 	t.Run("invalid category_id", func(t *testing.T) {
-		r, token, wsID := newBudgetTestRouter(t, &mockBudgetService{}, true)
+		r, token, wsID := newBudgetTestRouter(t, &mockBudgetService{})
 		w := doReq(r, http.MethodDelete, "/workspaces/"+wsID.String()+"/budgets/2026/6/categories/not-a-uuid", token, nil)
 		assert.Equal(t, http.StatusBadRequest, w.Code)
 	})

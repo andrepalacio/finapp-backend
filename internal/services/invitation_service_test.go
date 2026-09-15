@@ -5,10 +5,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/andrespalacio/finapp-backend/internal/models"
-	"github.com/andrespalacio/finapp-backend/pkg/apperror"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/andrespalacio/finapp-backend/internal/models"
+	"github.com/andrespalacio/finapp-backend/pkg/apperror"
 )
 
 type mockInvitationRepo struct {
@@ -241,7 +242,9 @@ func TestInvitationService_Accept_AlreadyMemberIsIdempotent(t *testing.T) {
 		},
 	}
 	userRepo := &mockInvitationUserRepo{
-		getByIDFn: func(_ context.Context, _ uuid.UUID) (models.User, error) { return models.User{ID: userID, Email: "a@b.com"}, nil },
+		getByIDFn: func(_ context.Context, _ uuid.UUID) (models.User, error) {
+			return models.User{ID: userID, Email: "a@b.com"}, nil
+		},
 	}
 	svc := NewInvitationService(repo, wsRepo, userRepo)
 

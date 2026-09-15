@@ -4,8 +4,9 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/andrespalacio/finapp-backend/pkg/apperror"
 	"github.com/gin-gonic/gin"
+
+	"github.com/andrespalacio/finapp-backend/pkg/apperror"
 )
 
 type errorBody struct {

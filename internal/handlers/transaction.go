@@ -6,12 +6,13 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
+
 	"github.com/andrespalacio/finapp-backend/internal/middleware"
 	"github.com/andrespalacio/finapp-backend/internal/repositories"
 	"github.com/andrespalacio/finapp-backend/internal/services"
 	"github.com/andrespalacio/finapp-backend/pkg/response"
-	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 )
 
 type transactionService interface {

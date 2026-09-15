@@ -5,24 +5,25 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/andrespalacio/finapp-backend/internal/models"
 	"github.com/andrespalacio/finapp-backend/internal/repositories"
 	"github.com/andrespalacio/finapp-backend/pkg/apperror"
-	"github.com/google/uuid"
-	"github.com/stretchr/testify/assert"
 )
 
 type mockTransactionRepo struct {
-	createFn         func(ctx context.Context, p repositories.CreateTransactionParams) (models.Transaction, error)
-	createTransferFn func(ctx context.Context, p repositories.CreateTransferParams) (models.Transaction, models.Transaction, error)
-	getByIDFn        func(ctx context.Context, id uuid.UUID) (models.Transaction, error)
-	listFn           func(ctx context.Context, p repositories.ListTransactionsParams) ([]models.Transaction, error)
-	countFn          func(ctx context.Context, p repositories.ListTransactionsParams) (int64, error)
-	dailySummaryFn   func(ctx context.Context, p repositories.DailySummaryParams) ([]models.DailySummary, error)
-	monthSummaryFn   func(ctx context.Context, p repositories.MonthSummaryParams) (repositories.MonthSummaryResult, error)
+	createFn           func(ctx context.Context, p repositories.CreateTransactionParams) (models.Transaction, error)
+	createTransferFn   func(ctx context.Context, p repositories.CreateTransferParams) (models.Transaction, models.Transaction, error)
+	getByIDFn          func(ctx context.Context, id uuid.UUID) (models.Transaction, error)
+	listFn             func(ctx context.Context, p repositories.ListTransactionsParams) ([]models.Transaction, error)
+	countFn            func(ctx context.Context, p repositories.ListTransactionsParams) (int64, error)
+	dailySummaryFn     func(ctx context.Context, p repositories.DailySummaryParams) ([]models.DailySummary, error)
+	monthSummaryFn     func(ctx context.Context, p repositories.MonthSummaryParams) (repositories.MonthSummaryResult, error)
 	listByDateCursorFn func(ctx context.Context, p repositories.ListByDateCursorParams) ([]models.Transaction, error)
-	updateFn         func(ctx context.Context, p repositories.UpdateTransactionParams) (models.Transaction, error)
-	deleteFn         func(ctx context.Context, id, workspaceID uuid.UUID) error
+	updateFn           func(ctx context.Context, p repositories.UpdateTransactionParams) (models.Transaction, error)
+	deleteFn           func(ctx context.Context, id, workspaceID uuid.UUID) error
 }
 
 func (m *mockTransactionRepo) Create(ctx context.Context, p repositories.CreateTransactionParams) (models.Transaction, error) {
@@ -292,7 +293,9 @@ func TestTransactionService_List(t *testing.T) {
 
 	t.Run("count repo error", func(t *testing.T) {
 		repo := &mockTransactionRepo{
-			listFn: func(_ context.Context, _ repositories.ListTransactionsParams) ([]models.Transaction, error) { return txs, nil },
+			listFn: func(_ context.Context, _ repositories.ListTransactionsParams) ([]models.Transaction, error) {
+				return txs, nil
+			},
 			countFn: func(_ context.Context, _ repositories.ListTransactionsParams) (int64, error) {
 				return 0, apperror.ErrInternal
 			},

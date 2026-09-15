@@ -9,14 +9,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/andrespalacio/finapp-backend/internal/middleware"
-	"github.com/andrespalacio/finapp-backend/internal/models"
-	"github.com/andrespalacio/finapp-backend/internal/services"
-	pkgauth "github.com/andrespalacio/finapp-backend/pkg/auth"
-	"github.com/andrespalacio/finapp-backend/pkg/apperror"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/andrespalacio/finapp-backend/internal/middleware"
+	"github.com/andrespalacio/finapp-backend/internal/models"
+	"github.com/andrespalacio/finapp-backend/internal/services"
+	"github.com/andrespalacio/finapp-backend/pkg/apperror"
+	pkgauth "github.com/andrespalacio/finapp-backend/pkg/auth"
 )
 
 type mockDebtServiceForHandler struct {
@@ -67,7 +68,7 @@ type alwaysMember struct{}
 
 func (alwaysMember) IsMember(_ context.Context, _, _ uuid.UUID) bool { return true }
 
-func debtTestRouter(t *testing.T, svc debtService) (*gin.Engine, uuid.UUID, string) {
+func debtTestRouter(t *testing.T, svc debtService) (*gin.Engine, string) {
 	t.Helper()
 	gin.SetMode(gin.TestMode)
 
@@ -90,7 +91,7 @@ func debtTestRouter(t *testing.T, svc debtService) (*gin.Engine, uuid.UUID, stri
 	ws.PUT("/debts/:debt_id/payments/:payment_id", h.UpdatePayment)
 	ws.DELETE("/debts/:debt_id/payments/:payment_id", h.DeletePayment)
 
-	return r, userID, tokens.AccessToken
+	return r, tokens.AccessToken
 }
 
 func doAuthedRequest(r *gin.Engine, method, path, token string, body any) *httptest.ResponseRecorder {
@@ -158,7 +159,7 @@ func TestDebtHandler_Create(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			svc := &mockDebtServiceForHandler{createFn: tt.mockFn}
-			r, _, token := debtTestRouter(t, svc)
+			r, token := debtTestRouter(t, svc)
 			w := doAuthedRequest(r, http.MethodPost, "/workspaces/"+wsID.String()+"/debts", token, tt.body)
 			assert.Equal(t, tt.expectedStatus, w.Code)
 		})
@@ -172,7 +173,7 @@ func TestDebtHandler_List(t *testing.T) {
 			return []models.Debt{{ID: uuid.New(), Name: "A"}}, nil
 		},
 	}
-	r, _, token := debtTestRouter(t, svc)
+	r, token := debtTestRouter(t, svc)
 	w := doAuthedRequest(r, http.MethodGet, "/workspaces/"+wsID.String()+"/debts", token, nil)
 	assert.Equal(t, http.StatusOK, w.Code)
 }
@@ -213,7 +214,7 @@ func TestDebtHandler_Get(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			svc := &mockDebtServiceForHandler{getByIDFn: tt.mockFn}
-			r, _, token := debtTestRouter(t, svc)
+			r, token := debtTestRouter(t, svc)
 			w := doAuthedRequest(r, http.MethodGet, "/workspaces/"+wsID.String()+"/debts/"+tt.debtIDInPath, token, nil)
 			assert.Equal(t, tt.expectedStatus, w.Code)
 		})
@@ -233,7 +234,7 @@ func TestDebtHandler_Update(t *testing.T) {
 			return models.Debt{ID: p.ID, Name: p.Name}, nil
 		},
 	}
-	r, _, token := debtTestRouter(t, svc)
+	r, token := debtTestRouter(t, svc)
 	w := doAuthedRequest(r, http.MethodPut, "/workspaces/"+wsID.String()+"/debts/"+debtID.String(), token, body)
 	assert.Equal(t, http.StatusOK, w.Code)
 
@@ -247,14 +248,14 @@ func TestDebtHandler_Delete(t *testing.T) {
 
 	t.Run("success", func(t *testing.T) {
 		svc := &mockDebtServiceForHandler{deleteFn: func(_ context.Context, _, _ uuid.UUID) error { return nil }}
-		r, _, token := debtTestRouter(t, svc)
+		r, token := debtTestRouter(t, svc)
 		w := doAuthedRequest(r, http.MethodDelete, "/workspaces/"+wsID.String()+"/debts/"+debtID.String(), token, nil)
 		assert.Equal(t, http.StatusNoContent, w.Code)
 	})
 
 	t.Run("wrong workspace maps to 404", func(t *testing.T) {
 		svc := &mockDebtServiceForHandler{deleteFn: func(_ context.Context, _, _ uuid.UUID) error { return apperror.ErrNotFound }}
-		r, _, token := debtTestRouter(t, svc)
+		r, token := debtTestRouter(t, svc)
 		w := doAuthedRequest(r, http.MethodDelete, "/workspaces/"+wsID.String()+"/debts/"+debtID.String(), token, nil)
 		assert.Equal(t, http.StatusNotFound, w.Code)
 	})
@@ -268,7 +269,7 @@ func TestDebtHandler_GetSchedule(t *testing.T) {
 			return []models.DebtScheduleInstallment{{Period: 1}}, nil
 		},
 	}
-	r, _, token := debtTestRouter(t, svc)
+	r, token := debtTestRouter(t, svc)
 	w := doAuthedRequest(r, http.MethodGet, "/workspaces/"+wsID.String()+"/debts/"+debtID.String()+"/schedule", token, nil)
 	assert.Equal(t, http.StatusOK, w.Code)
 }
@@ -324,7 +325,7 @@ func TestDebtHandler_RecordPayment(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			svc := &mockDebtServiceForHandler{recordPaymentFn: tt.mockFn}
-			r, _, token := debtTestRouter(t, svc)
+			r, token := debtTestRouter(t, svc)
 			w := doAuthedRequest(r, http.MethodPost, "/workspaces/"+wsID.String()+"/debts/"+debtID.String()+"/payments", token, tt.body)
 			assert.Equal(t, tt.expectedStatus, w.Code)
 		})
@@ -339,7 +340,7 @@ func TestDebtHandler_ListPayments(t *testing.T) {
 			return []models.DebtPayment{{ID: uuid.New()}}, nil
 		},
 	}
-	r, _, token := debtTestRouter(t, svc)
+	r, token := debtTestRouter(t, svc)
 	w := doAuthedRequest(r, http.MethodGet, "/workspaces/"+wsID.String()+"/debts/"+debtID.String()+"/payments", token, nil)
 	assert.Equal(t, http.StatusOK, w.Code)
 }
@@ -386,7 +387,7 @@ func TestDebtHandler_UpdatePayment(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			svc := &mockDebtServiceForHandler{updatePaymentFn: tt.mockFn}
-			r, _, token := debtTestRouter(t, svc)
+			r, token := debtTestRouter(t, svc)
 			w := doAuthedRequest(r, http.MethodPut, "/workspaces/"+wsID.String()+"/debts/"+debtID.String()+"/payments/"+tt.paymentIDPath, token, tt.body)
 			assert.Equal(t, tt.expectedStatus, w.Code)
 		})
@@ -400,14 +401,14 @@ func TestDebtHandler_DeletePayment(t *testing.T) {
 
 	t.Run("success", func(t *testing.T) {
 		svc := &mockDebtServiceForHandler{deletePaymentFn: func(_ context.Context, _, _, _ uuid.UUID) error { return nil }}
-		r, _, token := debtTestRouter(t, svc)
+		r, token := debtTestRouter(t, svc)
 		w := doAuthedRequest(r, http.MethodDelete, "/workspaces/"+wsID.String()+"/debts/"+debtID.String()+"/payments/"+paymentID.String(), token, nil)
 		assert.Equal(t, http.StatusNoContent, w.Code)
 	})
 
 	t.Run("payment belongs to different debt maps to 404", func(t *testing.T) {
 		svc := &mockDebtServiceForHandler{deletePaymentFn: func(_ context.Context, _, _, _ uuid.UUID) error { return apperror.ErrNotFound }}
-		r, _, token := debtTestRouter(t, svc)
+		r, token := debtTestRouter(t, svc)
 		w := doAuthedRequest(r, http.MethodDelete, "/workspaces/"+wsID.String()+"/debts/"+debtID.String()+"/payments/"+paymentID.String(), token, nil)
 		assert.Equal(t, http.StatusNotFound, w.Code)
 	})

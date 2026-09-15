@@ -4,11 +4,12 @@ import (
 	"context"
 	"time"
 
+	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
+
 	"github.com/andrespalacio/finapp-backend/internal/middleware"
 	"github.com/andrespalacio/finapp-backend/internal/services"
 	"github.com/andrespalacio/finapp-backend/pkg/response"
-	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 )
 
 type alertBudgetService interface {
@@ -24,13 +25,13 @@ func NewAlertHandler(budgetSvc alertBudgetService) *AlertHandler {
 }
 
 type Alert struct {
-	Type        string  `json:"type"`
-	CategoryID  *string `json:"category_id,omitempty"`
-	CategoryName string `json:"category_name,omitempty"`
-	Limit       float64 `json:"limit"`
-	Spent       float64 `json:"spent"`
-	Overage     float64 `json:"overage"`
-	Message     string  `json:"message"`
+	Type         string  `json:"type"`
+	CategoryID   *string `json:"category_id,omitempty"`
+	CategoryName string  `json:"category_name,omitempty"`
+	Limit        float64 `json:"limit"`
+	Spent        float64 `json:"spent"`
+	Overage      float64 `json:"overage"`
+	Message      string  `json:"message"`
 }
 
 type AlertsResponse struct {

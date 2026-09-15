@@ -1,10 +1,11 @@
 package handlers
 
 import (
+	"github.com/gin-gonic/gin"
+
 	"github.com/andrespalacio/finapp-backend/internal/middleware"
 	"github.com/andrespalacio/finapp-backend/internal/services"
 	"github.com/andrespalacio/finapp-backend/pkg/response"
-	"github.com/gin-gonic/gin"
 )
 
 type UserHandler struct {

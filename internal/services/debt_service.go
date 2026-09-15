@@ -5,10 +5,11 @@ import (
 	"math"
 	"time"
 
+	"github.com/google/uuid"
+
 	"github.com/andrespalacio/finapp-backend/internal/models"
 	"github.com/andrespalacio/finapp-backend/internal/repositories"
 	"github.com/andrespalacio/finapp-backend/pkg/apperror"
-	"github.com/google/uuid"
 )
 
 var validRateTypes = map[string]bool{

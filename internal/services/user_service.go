@@ -5,9 +5,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/andrespalacio/finapp-backend/pkg/apperror"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
+
+	"github.com/andrespalacio/finapp-backend/pkg/apperror"
 )
 
 type UserService struct {

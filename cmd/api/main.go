@@ -7,14 +7,15 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/joho/godotenv"
+	"go.uber.org/zap"
+
+	_ "github.com/andrespalacio/finapp-backend/api/swagger"
 	"github.com/andrespalacio/finapp-backend/db"
 	"github.com/andrespalacio/finapp-backend/internal/handlers"
 	"github.com/andrespalacio/finapp-backend/internal/repositories"
 	"github.com/andrespalacio/finapp-backend/internal/services"
 	pkgauth "github.com/andrespalacio/finapp-backend/pkg/auth"
-	_ "github.com/andrespalacio/finapp-backend/api/swagger"
-	"github.com/joho/godotenv"
-	"go.uber.org/zap"
 )
 
 // @title           FinApp API
@@ -64,38 +65,38 @@ func main() {
 	defer redisClient.Close()
 
 	// Repositories
-	userRepo        := repositories.NewUserRepository(pool)
-	workspaceRepo   := repositories.NewWorkspaceRepository(pool)
-	categoryRepo    := repositories.NewCategoryRepository(pool)
+	userRepo := repositories.NewUserRepository(pool)
+	workspaceRepo := repositories.NewWorkspaceRepository(pool)
+	categoryRepo := repositories.NewCategoryRepository(pool)
 	transactionRepo := repositories.NewTransactionRepository(pool)
-	budgetRepo      := repositories.NewBudgetRepository(pool)
-	debtRepo        := repositories.NewDebtRepository(pool)
-	savingsRepo     := repositories.NewSavingsRepository(pool)
-	invitationRepo  := repositories.NewInvitationRepository(pool)
+	budgetRepo := repositories.NewBudgetRepository(pool)
+	debtRepo := repositories.NewDebtRepository(pool)
+	savingsRepo := repositories.NewSavingsRepository(pool)
+	invitationRepo := repositories.NewInvitationRepository(pool)
 
 	// Services
-	authSvc        := services.NewAuthService(userRepo, redisClient, jwtManager, bcryptCost)
-	userSvc        := services.NewUserService(userRepo, bcryptCost)
-	workspaceSvc   := services.NewWorkspaceService(workspaceRepo)
-	categorySvc    := services.NewCategoryService(categoryRepo)
+	authSvc := services.NewAuthService(userRepo, redisClient, jwtManager, bcryptCost)
+	userSvc := services.NewUserService(userRepo, bcryptCost)
+	workspaceSvc := services.NewWorkspaceService(workspaceRepo)
+	categorySvc := services.NewCategoryService(categoryRepo)
 	transactionSvc := services.NewTransactionService(transactionRepo)
-	budgetSvc      := services.NewBudgetService(budgetRepo)
-	debtSvc        := services.NewDebtService(debtRepo)
-	savingsSvc     := services.NewSavingsService(savingsRepo)
-	invitationSvc  := services.NewInvitationService(invitationRepo, workspaceRepo, userRepo)
+	budgetSvc := services.NewBudgetService(budgetRepo)
+	debtSvc := services.NewDebtService(debtRepo)
+	savingsSvc := services.NewSavingsService(savingsRepo)
+	invitationSvc := services.NewInvitationService(invitationRepo, workspaceRepo, userRepo)
 
 	// Handlers
-	authHandler        := handlers.NewAuthHandler(authSvc)
-	userHandler        := handlers.NewUserHandler(userSvc)
-	workspaceHandler   := handlers.NewWorkspaceHandler(workspaceSvc)
-	categoryHandler    := handlers.NewCategoryHandler(categorySvc)
+	authHandler := handlers.NewAuthHandler(authSvc)
+	userHandler := handlers.NewUserHandler(userSvc)
+	workspaceHandler := handlers.NewWorkspaceHandler(workspaceSvc)
+	categoryHandler := handlers.NewCategoryHandler(categorySvc)
 	transactionHandler := handlers.NewTransactionHandler(transactionSvc)
-	budgetHandler      := handlers.NewBudgetHandler(budgetSvc)
-	debtHandler        := handlers.NewDebtHandler(debtSvc)
-	savingsHandler     := handlers.NewSavingsHandler(savingsSvc)
-	invitationHandler  := handlers.NewInvitationHandler(invitationSvc)
-	importHandler      := handlers.NewImportHandler(transactionSvc, categorySvc)
-	alertHandler       := handlers.NewAlertHandler(budgetSvc)
+	budgetHandler := handlers.NewBudgetHandler(budgetSvc)
+	debtHandler := handlers.NewDebtHandler(debtSvc)
+	savingsHandler := handlers.NewSavingsHandler(savingsSvc)
+	invitationHandler := handlers.NewInvitationHandler(invitationSvc)
+	importHandler := handlers.NewImportHandler(transactionSvc, categorySvc)
+	alertHandler := handlers.NewAlertHandler(budgetSvc)
 
 	// Router
 	r := newRouter(logger, redisClient, jwtManager, workspaceRepo, handlerSet{

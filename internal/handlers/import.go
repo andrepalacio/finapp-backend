@@ -9,12 +9,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/andrespalacio/finapp-backend/internal/middleware"
-	"github.com/andrespalacio/finapp-backend/internal/services"
-	"github.com/andrespalacio/finapp-backend/pkg/response"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/xuri/excelize/v2"
+
+	"github.com/andrespalacio/finapp-backend/internal/middleware"
+	"github.com/andrespalacio/finapp-backend/internal/services"
+	"github.com/andrespalacio/finapp-backend/pkg/response"
 )
 
 type importTransactionService interface {
@@ -64,7 +65,7 @@ func (h *ImportHandler) Template(c *gin.Context) {
 	defer f.Close() //nolint:errcheck
 
 	sheet := "Transacciones"
-	f.SetSheetName("Sheet1", sheet)
+	f.SetSheetName("Sheet1", sheet) //nolint:errcheck
 
 	// Headers — bold + background
 	headerStyle, _ := f.NewStyle(&excelize.Style{
@@ -75,14 +76,14 @@ func (h *ImportHandler) Template(c *gin.Context) {
 
 	for col, header := range templateHeaders {
 		cell, _ := excelize.CoordinatesToCellName(col+1, 1)
-		f.SetCellValue(sheet, cell, header)
-		f.SetCellStyle(sheet, cell, cell, headerStyle)
+		f.SetCellValue(sheet, cell, header)            //nolint:errcheck
+		f.SetCellStyle(sheet, cell, cell, headerStyle) //nolint:errcheck
 	}
 
 	// Example row
 	for col, val := range templateExample {
 		cell, _ := excelize.CoordinatesToCellName(col+1, 2)
-		f.SetCellValue(sheet, cell, val)
+		f.SetCellValue(sheet, cell, val) //nolint:errcheck
 	}
 
 	// Column widths
@@ -94,10 +95,10 @@ func (h *ImportHandler) Template(c *gin.Context) {
 
 	// Instructions sheet
 	info := "Instrucciones"
-	f.NewSheet(info)
-	f.SetCellValue(info, "A1", "Campo")
-	f.SetCellValue(info, "B1", "Requerido")
-	f.SetCellValue(info, "C1", "Valores validos")
+	f.NewSheet(info)                              //nolint:errcheck
+	f.SetCellValue(info, "A1", "Campo")           //nolint:errcheck
+	f.SetCellValue(info, "B1", "Requerido")       //nolint:errcheck
+	f.SetCellValue(info, "C1", "Valores validos") //nolint:errcheck
 	rows := [][]string{
 		{"fecha", "Si", "YYYY-MM-DD"},
 		{"descripcion", "No", "Texto libre"},
@@ -109,7 +110,7 @@ func (h *ImportHandler) Template(c *gin.Context) {
 	for i, row := range rows {
 		for j, val := range row {
 			cell, _ := excelize.CoordinatesToCellName(j+1, i+2)
-			f.SetCellValue(info, cell, val)
+			f.SetCellValue(info, cell, val) //nolint:errcheck
 		}
 	}
 
@@ -125,20 +126,20 @@ func (h *ImportHandler) Template(c *gin.Context) {
 }
 
 type importRowResult struct {
-	Row     int     `json:"row"`
-	Valid   bool    `json:"valid"`
-	Error   string  `json:"error,omitempty"`
-	Date    string  `json:"date,omitempty"`
-	Desc    string  `json:"description,omitempty"`
-	Amount  float64 `json:"amount,omitempty"`
-	Type    string  `json:"type,omitempty"`
-	Categ   string  `json:"category,omitempty"`
+	Row    int     `json:"row"`
+	Valid  bool    `json:"valid"`
+	Error  string  `json:"error,omitempty"`
+	Date   string  `json:"date,omitempty"`
+	Desc   string  `json:"description,omitempty"`
+	Amount float64 `json:"amount,omitempty"`
+	Type   string  `json:"type,omitempty"`
+	Categ  string  `json:"category,omitempty"`
 }
 
 type importSummary struct {
-	Total   int               `json:"total"`
-	Imported int              `json:"imported"`
-	Skipped  int              `json:"skipped"`
+	Total    int               `json:"total"`
+	Imported int               `json:"imported"`
+	Skipped  int               `json:"skipped"`
 	Rows     []importRowResult `json:"rows"`
 }
 

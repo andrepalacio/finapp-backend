@@ -34,15 +34,15 @@ type DebtPayment struct {
 }
 
 type DebtScheduleInstallment struct {
-	Period      int32      `json:"period"`
-	DueDate     time.Time  `json:"due_date"`
-	Payment     float64    `json:"payment"`
-	Principal   float64    `json:"principal"`
-	Interest    float64    `json:"interest"`
-	Insurance   float64    `json:"insurance"`
-	Total       float64    `json:"total"`
-	Balance     float64    `json:"balance"`
-	Status      string     `json:"status"`
-	PaidAt      *time.Time `json:"paid_at,omitempty"`
-	PaidAmount  *float64   `json:"paid_amount,omitempty"`
+	Period     int32      `json:"period"`
+	DueDate    time.Time  `json:"due_date"`
+	Payment    float64    `json:"payment"`
+	Principal  float64    `json:"principal"`
+	Interest   float64    `json:"interest"`
+	Insurance  float64    `json:"insurance"`
+	Total      float64    `json:"total"`
+	Balance    float64    `json:"balance"`
+	Status     string     `json:"status"`
+	PaidAt     *time.Time `json:"paid_at,omitempty"`
+	PaidAmount *float64   `json:"paid_amount,omitempty"`
 }

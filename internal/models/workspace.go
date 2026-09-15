@@ -20,4 +20,3 @@ type WorkspaceWithRole struct {
 	Workspace
 	Role string
 }
-

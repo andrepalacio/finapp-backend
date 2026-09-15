@@ -3,11 +3,12 @@ package middleware
 import (
 	"strings"
 
-	pkgauth "github.com/andrespalacio/finapp-backend/pkg/auth"
-	"github.com/andrespalacio/finapp-backend/pkg/apperror"
-	"github.com/andrespalacio/finapp-backend/pkg/response"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+
+	"github.com/andrespalacio/finapp-backend/pkg/apperror"
+	pkgauth "github.com/andrespalacio/finapp-backend/pkg/auth"
+	"github.com/andrespalacio/finapp-backend/pkg/response"
 )
 
 const (

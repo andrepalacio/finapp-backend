@@ -7,13 +7,14 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/andrespalacio/finapp-backend/internal/models"
-	"github.com/andrespalacio/finapp-backend/internal/repositories"
-	pkgauth "github.com/andrespalacio/finapp-backend/pkg/auth"
-	"github.com/andrespalacio/finapp-backend/pkg/apperror"
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 	"golang.org/x/crypto/bcrypt"
+
+	"github.com/andrespalacio/finapp-backend/internal/models"
+	"github.com/andrespalacio/finapp-backend/internal/repositories"
+	"github.com/andrespalacio/finapp-backend/pkg/apperror"
+	pkgauth "github.com/andrespalacio/finapp-backend/pkg/auth"
 )
 
 // UserRepository is the interface shared by auth and user services.

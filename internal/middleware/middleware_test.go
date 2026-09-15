@@ -8,11 +8,12 @@ import (
 	"testing"
 	"time"
 
-	pkgauth "github.com/andrespalacio/finapp-backend/pkg/auth"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
+
+	pkgauth "github.com/andrespalacio/finapp-backend/pkg/auth"
 )
 
 func init() {

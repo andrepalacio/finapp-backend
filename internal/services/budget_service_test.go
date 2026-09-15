@@ -5,22 +5,23 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/andrespalacio/finapp-backend/internal/models"
 	"github.com/andrespalacio/finapp-backend/internal/repositories"
 	"github.com/andrespalacio/finapp-backend/pkg/apperror"
-	"github.com/google/uuid"
-	"github.com/stretchr/testify/assert"
 )
 
 type mockBudgetRepo struct {
-	upsertFn          func(ctx context.Context, p repositories.UpsertBudgetParams) (models.Budget, error)
-	getByYearMonthFn  func(ctx context.Context, workspaceID uuid.UUID, year, month int16) (models.Budget, error)
-	getByIDFn         func(ctx context.Context, id uuid.UUID) (models.Budget, error)
-	listFn            func(ctx context.Context, workspaceID uuid.UUID) ([]models.Budget, error)
-	deleteFn          func(ctx context.Context, id uuid.UUID) error
-	upsertCategoryFn  func(ctx context.Context, budgetID, categoryID uuid.UUID, limit float64) error
-	deleteCategoryFn  func(ctx context.Context, budgetID, categoryID uuid.UUID) error
-	listCategoriesFn  func(ctx context.Context, budgetID uuid.UUID) ([]models.BudgetCategory, error)
+	upsertFn           func(ctx context.Context, p repositories.UpsertBudgetParams) (models.Budget, error)
+	getByYearMonthFn   func(ctx context.Context, workspaceID uuid.UUID, year, month int16) (models.Budget, error)
+	getByIDFn          func(ctx context.Context, id uuid.UUID) (models.Budget, error)
+	listFn             func(ctx context.Context, workspaceID uuid.UUID) ([]models.Budget, error)
+	deleteFn           func(ctx context.Context, id uuid.UUID) error
+	upsertCategoryFn   func(ctx context.Context, budgetID, categoryID uuid.UUID, limit float64) error
+	deleteCategoryFn   func(ctx context.Context, budgetID, categoryID uuid.UUID) error
+	listCategoriesFn   func(ctx context.Context, budgetID uuid.UUID) ([]models.BudgetCategory, error)
 	categorySpendingFn func(ctx context.Context, budgetID, workspaceID uuid.UUID, year, month int32) ([]models.BudgetCategorySpending, error)
 }
 

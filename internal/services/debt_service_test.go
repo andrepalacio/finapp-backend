@@ -5,11 +5,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/andrespalacio/finapp-backend/internal/models"
 	"github.com/andrespalacio/finapp-backend/internal/repositories"
 	"github.com/andrespalacio/finapp-backend/pkg/apperror"
-	"github.com/google/uuid"
-	"github.com/stretchr/testify/assert"
 )
 
 type mockDebtRepo struct {
@@ -259,7 +260,7 @@ func TestDebtService_Delete(t *testing.T) {
 		deleteCalled := false
 		repo := &mockDebtRepo{
 			getByIDFn: func(_ context.Context, _ uuid.UUID) (models.Debt, error) { return debt, nil },
-			deleteFn: func(_ context.Context, _, _ uuid.UUID) error { deleteCalled = true; return nil },
+			deleteFn:  func(_ context.Context, _, _ uuid.UUID) error { deleteCalled = true; return nil },
 		}
 		svc := NewDebtService(repo)
 		err := svc.Delete(context.Background(), debt.ID, wsID)
@@ -396,8 +397,8 @@ func TestDebtService_DeletePayment(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		deleteCalled := false
 		repo := &mockDebtRepo{
-			getByIDFn:    func(_ context.Context, _ uuid.UUID) (models.Debt, error) { return debt, nil },
-			getPaymentFn: func(_ context.Context, _ uuid.UUID) (models.DebtPayment, error) { return payment, nil },
+			getByIDFn:       func(_ context.Context, _ uuid.UUID) (models.Debt, error) { return debt, nil },
+			getPaymentFn:    func(_ context.Context, _ uuid.UUID) (models.DebtPayment, error) { return payment, nil },
 			deletePaymentFn: func(_ context.Context, _, _ uuid.UUID) error { deleteCalled = true; return nil },
 		}
 		svc := NewDebtService(repo)

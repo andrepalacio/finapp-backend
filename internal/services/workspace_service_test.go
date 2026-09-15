@@ -5,21 +5,22 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/andrespalacio/finapp-backend/internal/models"
 	"github.com/andrespalacio/finapp-backend/internal/repositories"
 	"github.com/andrespalacio/finapp-backend/pkg/apperror"
-	"github.com/google/uuid"
-	"github.com/stretchr/testify/assert"
 )
 
 type mockWorkspaceRepo struct {
-	createFn    func(ctx context.Context, p repositories.CreateWorkspaceParams) (models.Workspace, error)
-	addMemberFn func(ctx context.Context, workspaceID, userID uuid.UUID, role string) error
-	getByIDFn   func(ctx context.Context, id uuid.UUID) (models.Workspace, error)
-	getMemberFn func(ctx context.Context, workspaceID, userID uuid.UUID) (models.WorkspaceMember, error)
+	createFn     func(ctx context.Context, p repositories.CreateWorkspaceParams) (models.Workspace, error)
+	addMemberFn  func(ctx context.Context, workspaceID, userID uuid.UUID, role string) error
+	getByIDFn    func(ctx context.Context, id uuid.UUID) (models.Workspace, error)
+	getMemberFn  func(ctx context.Context, workspaceID, userID uuid.UUID) (models.WorkspaceMember, error)
 	listByUserFn func(ctx context.Context, userID uuid.UUID) ([]models.WorkspaceWithRole, error)
-	updateFn    func(ctx context.Context, id uuid.UUID, name, currency string) (models.Workspace, error)
-	deleteFn    func(ctx context.Context, id uuid.UUID) error
+	updateFn     func(ctx context.Context, id uuid.UUID, name, currency string) (models.Workspace, error)
+	deleteFn     func(ctx context.Context, id uuid.UUID) error
 }
 
 func (m *mockWorkspaceRepo) Create(ctx context.Context, p repositories.CreateWorkspaceParams) (models.Workspace, error) {
@@ -116,7 +117,7 @@ func TestWorkspaceService_Update_OwnerOnly(t *testing.T) {
 
 	repo := &mockWorkspaceRepo{
 		getByIDFn: func(_ context.Context, _ uuid.UUID) (models.Workspace, error) { return ws, nil },
-		updateFn:  func(_ context.Context, _ uuid.UUID, name, currency string) (models.Workspace, error) {
+		updateFn: func(_ context.Context, _ uuid.UUID, name, currency string) (models.Workspace, error) {
 			return models.Workspace{ID: wsID, Name: name, OwnerID: ownerID, Currency: currency, CreatedAt: now, UpdatedAt: now}, nil
 		},
 	}
