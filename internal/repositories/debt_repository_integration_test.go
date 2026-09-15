@@ -7,10 +7,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/andrespalacio/finapp-backend/pkg/apperror"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/andrespalacio/finapp-backend/pkg/apperror"
 )
 
 func createTestWorkspace(t *testing.T, wsRepo *WorkspaceRepository, ownerID uuid.UUID) uuid.UUID {

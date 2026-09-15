@@ -4,14 +4,15 @@ import (
 	"context"
 	"errors"
 
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgxpool"
+
 	"github.com/andrespalacio/finapp-backend/internal/models"
 	"github.com/andrespalacio/finapp-backend/internal/repositories/sqlc"
 	"github.com/andrespalacio/finapp-backend/pkg/apperror"
-	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/jackc/pgx/v5/pgxpool"
-	"time"
 )
 
 type DebtRepository struct {
@@ -59,10 +60,7 @@ func (r *DebtRepository) Create(ctx context.Context, p CreateDebtParams) (models
 func (r *DebtRepository) GetByID(ctx context.Context, id uuid.UUID) (models.Debt, error) {
 	row, err := r.q.GetDebtByID(ctx, id)
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return models.Debt{}, apperror.ErrNotFound
-		}
-		return models.Debt{}, apperror.Wrap(apperror.ErrInternal, err)
+		return models.Debt{}, mapNotFoundErr(err)
 	}
 	return toDebtModel(row), nil
 }
@@ -110,10 +108,7 @@ func (r *DebtRepository) Update(ctx context.Context, p UpdateDebtParams) (models
 		InsuranceType:    p.InsuranceType,
 	})
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return models.Debt{}, apperror.ErrNotFound
-		}
-		return models.Debt{}, apperror.Wrap(apperror.ErrInternal, err)
+		return models.Debt{}, mapNotFoundErr(err)
 	}
 	return toDebtModel(row), nil
 }
@@ -151,10 +146,7 @@ func (r *DebtRepository) CreatePayment(ctx context.Context, p CreateDebtPaymentP
 func (r *DebtRepository) GetPayment(ctx context.Context, id uuid.UUID) (models.DebtPayment, error) {
 	row, err := r.q.GetDebtPayment(ctx, id)
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return models.DebtPayment{}, apperror.ErrNotFound
-		}
-		return models.DebtPayment{}, apperror.Wrap(apperror.ErrInternal, err)
+		return models.DebtPayment{}, mapNotFoundErr(err)
 	}
 	return toDebtPaymentModel(row), nil
 }
@@ -186,10 +178,7 @@ func (r *DebtRepository) UpdatePayment(ctx context.Context, p UpdateDebtPaymentP
 		Notes:  toPgText(p.Notes),
 	})
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return models.DebtPayment{}, apperror.ErrNotFound
-		}
-		return models.DebtPayment{}, apperror.Wrap(apperror.ErrInternal, err)
+		return models.DebtPayment{}, mapNotFoundErr(err)
 	}
 	return toDebtPaymentModel(row), nil
 }

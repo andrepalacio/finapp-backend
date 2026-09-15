@@ -2,16 +2,15 @@ package repositories
 
 import (
 	"context"
-	"errors"
 	"time"
+
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/andrespalacio/finapp-backend/internal/models"
 	"github.com/andrespalacio/finapp-backend/internal/repositories/sqlc"
 	"github.com/andrespalacio/finapp-backend/pkg/apperror"
-	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgtype"
-	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type InvitationRepository struct {
@@ -39,10 +38,7 @@ func (r *InvitationRepository) Create(ctx context.Context, workspaceID uuid.UUID
 func (r *InvitationRepository) GetByToken(ctx context.Context, token uuid.UUID) (models.WorkspaceInvitation, error) {
 	row, err := r.q.GetInvitationByToken(ctx, token)
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return models.WorkspaceInvitation{}, apperror.ErrNotFound
-		}
-		return models.WorkspaceInvitation{}, apperror.Wrap(apperror.ErrInternal, err)
+		return models.WorkspaceInvitation{}, mapNotFoundErr(err)
 	}
 	return toInvitationModel(row), nil
 }
@@ -50,10 +46,7 @@ func (r *InvitationRepository) GetByToken(ctx context.Context, token uuid.UUID) 
 func (r *InvitationRepository) GetByID(ctx context.Context, id uuid.UUID) (models.WorkspaceInvitation, error) {
 	row, err := r.q.GetInvitationByID(ctx, id)
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return models.WorkspaceInvitation{}, apperror.ErrNotFound
-		}
-		return models.WorkspaceInvitation{}, apperror.Wrap(apperror.ErrInternal, err)
+		return models.WorkspaceInvitation{}, mapNotFoundErr(err)
 	}
 	return toInvitationModel(row), nil
 }
@@ -76,10 +69,7 @@ func (r *InvitationRepository) UpdateStatus(ctx context.Context, id uuid.UUID, s
 		Status: status,
 	})
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return models.WorkspaceInvitation{}, apperror.ErrNotFound
-		}
-		return models.WorkspaceInvitation{}, apperror.Wrap(apperror.ErrInternal, err)
+		return models.WorkspaceInvitation{}, mapNotFoundErr(err)
 	}
 	return toInvitationModel(row), nil
 }

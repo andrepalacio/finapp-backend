@@ -4,13 +4,13 @@ import (
 	"context"
 	"errors"
 
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgxpool"
+
 	"github.com/andrespalacio/finapp-backend/internal/models"
 	"github.com/andrespalacio/finapp-backend/internal/repositories/sqlc"
 	"github.com/andrespalacio/finapp-backend/pkg/apperror"
-	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type UserRepository struct {
@@ -46,10 +46,7 @@ func (r *UserRepository) Create(ctx context.Context, params CreateUserParams) (m
 func (r *UserRepository) GetByEmail(ctx context.Context, email string) (models.User, error) {
 	row, err := r.q.GetUserByEmail(ctx, email)
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return models.User{}, apperror.ErrNotFound
-		}
-		return models.User{}, apperror.Wrap(apperror.ErrInternal, err)
+		return models.User{}, mapNotFoundErr(err)
 	}
 	return toUserModel(row), nil
 }
@@ -57,10 +54,7 @@ func (r *UserRepository) GetByEmail(ctx context.Context, email string) (models.U
 func (r *UserRepository) GetByID(ctx context.Context, id uuid.UUID) (models.User, error) {
 	row, err := r.q.GetUserByID(ctx, id)
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return models.User{}, apperror.ErrNotFound
-		}
-		return models.User{}, apperror.Wrap(apperror.ErrInternal, err)
+		return models.User{}, mapNotFoundErr(err)
 	}
 	return toUserModel(row), nil
 }

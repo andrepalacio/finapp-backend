@@ -4,13 +4,14 @@ import (
 	"context"
 	"errors"
 
-	"github.com/andrespalacio/finapp-backend/internal/models"
-	"github.com/andrespalacio/finapp-backend/internal/repositories/sqlc"
-	"github.com/andrespalacio/finapp-backend/pkg/apperror"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
+
+	"github.com/andrespalacio/finapp-backend/internal/models"
+	"github.com/andrespalacio/finapp-backend/internal/repositories/sqlc"
+	"github.com/andrespalacio/finapp-backend/pkg/apperror"
 )
 
 type CategoryRepository struct {
@@ -51,10 +52,7 @@ func (r *CategoryRepository) Create(ctx context.Context, p CreateCategoryParams)
 func (r *CategoryRepository) GetByID(ctx context.Context, id uuid.UUID) (models.Category, error) {
 	row, err := r.q.GetCategoryByID(ctx, id)
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return models.Category{}, apperror.ErrNotFound
-		}
-		return models.Category{}, apperror.Wrap(apperror.ErrInternal, err)
+		return models.Category{}, mapNotFoundErr(err)
 	}
 	return toCategoryModel(row), nil
 }

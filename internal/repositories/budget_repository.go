@@ -2,14 +2,13 @@ package repositories
 
 import (
 	"context"
-	"errors"
+
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/andrespalacio/finapp-backend/internal/models"
 	"github.com/andrespalacio/finapp-backend/internal/repositories/sqlc"
 	"github.com/andrespalacio/finapp-backend/pkg/apperror"
-	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type BudgetRepository struct {
@@ -47,10 +46,7 @@ func (r *BudgetRepository) GetByYearMonth(ctx context.Context, workspaceID uuid.
 		Month:       month,
 	})
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return models.Budget{}, apperror.ErrNotFound
-		}
-		return models.Budget{}, apperror.Wrap(apperror.ErrInternal, err)
+		return models.Budget{}, mapNotFoundErr(err)
 	}
 	return toBudgetModel(row), nil
 }
@@ -58,10 +54,7 @@ func (r *BudgetRepository) GetByYearMonth(ctx context.Context, workspaceID uuid.
 func (r *BudgetRepository) GetByID(ctx context.Context, id uuid.UUID) (models.Budget, error) {
 	row, err := r.q.GetBudgetByID(ctx, id)
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return models.Budget{}, apperror.ErrNotFound
-		}
-		return models.Budget{}, apperror.Wrap(apperror.ErrInternal, err)
+		return models.Budget{}, mapNotFoundErr(err)
 	}
 	return toBudgetModel(row), nil
 }

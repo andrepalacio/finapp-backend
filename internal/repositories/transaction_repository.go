@@ -2,16 +2,15 @@ package repositories
 
 import (
 	"context"
-	"errors"
 	"time"
+
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/andrespalacio/finapp-backend/internal/models"
 	"github.com/andrespalacio/finapp-backend/internal/repositories/sqlc"
 	"github.com/andrespalacio/finapp-backend/pkg/apperror"
-	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgtype"
-	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type TransactionRepository struct {
@@ -113,10 +112,7 @@ func (r *TransactionRepository) CreateTransfer(ctx context.Context, p CreateTran
 func (r *TransactionRepository) GetByID(ctx context.Context, id uuid.UUID) (models.Transaction, error) {
 	row, err := r.q.GetTransactionByID(ctx, id)
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return models.Transaction{}, apperror.ErrNotFound
-		}
-		return models.Transaction{}, apperror.Wrap(apperror.ErrInternal, err)
+		return models.Transaction{}, mapNotFoundErr(err)
 	}
 	return toTransactionModel(row), nil
 }
@@ -293,10 +289,7 @@ func (r *TransactionRepository) Update(ctx context.Context, p UpdateTransactionP
 		Date:        toPgDate(p.Date),
 	})
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return models.Transaction{}, apperror.ErrNotFound
-		}
-		return models.Transaction{}, apperror.Wrap(apperror.ErrInternal, err)
+		return models.Transaction{}, mapNotFoundErr(err)
 	}
 	return toTransactionModel(row), nil
 }

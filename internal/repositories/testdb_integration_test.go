@@ -9,8 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/andrespalacio/finapp-backend/db"
 	"github.com/jackc/pgx/v5/pgxpool"
+
+	"github.com/andrespalacio/finapp-backend/db"
 )
 
 var (

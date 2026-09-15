@@ -2,15 +2,14 @@ package repositories
 
 import (
 	"context"
-	"errors"
 	"time"
+
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/andrespalacio/finapp-backend/internal/models"
 	"github.com/andrespalacio/finapp-backend/internal/repositories/sqlc"
 	"github.com/andrespalacio/finapp-backend/pkg/apperror"
-	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type SavingsRepository struct {
@@ -46,10 +45,7 @@ func (r *SavingsRepository) Create(ctx context.Context, p CreateSavingsGoalParam
 func (r *SavingsRepository) GetByID(ctx context.Context, id uuid.UUID) (models.SavingsGoal, error) {
 	row, err := r.q.GetSavingsGoalByID(ctx, id)
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return models.SavingsGoal{}, apperror.ErrNotFound
-		}
-		return models.SavingsGoal{}, apperror.Wrap(apperror.ErrInternal, err)
+		return models.SavingsGoal{}, mapNotFoundErr(err)
 	}
 	return toSavingsGoalModel(row), nil
 }
@@ -114,10 +110,7 @@ func (r *SavingsRepository) Update(ctx context.Context, p UpdateSavingsGoalParam
 		Notes:        toPgText(p.Notes),
 	})
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return models.SavingsGoal{}, apperror.ErrNotFound
-		}
-		return models.SavingsGoal{}, apperror.Wrap(apperror.ErrInternal, err)
+		return models.SavingsGoal{}, mapNotFoundErr(err)
 	}
 	return toSavingsGoalModel(row), nil
 }
@@ -149,10 +142,7 @@ func (r *SavingsRepository) CreateContribution(ctx context.Context, p CreateCont
 func (r *SavingsRepository) GetContribution(ctx context.Context, id uuid.UUID) (models.SavingsContribution, error) {
 	row, err := r.q.GetContribution(ctx, id)
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return models.SavingsContribution{}, apperror.ErrNotFound
-		}
-		return models.SavingsContribution{}, apperror.Wrap(apperror.ErrInternal, err)
+		return models.SavingsContribution{}, mapNotFoundErr(err)
 	}
 	return toContributionModel(row), nil
 }

@@ -49,10 +49,10 @@ func Wrap(base *AppError, err error) *AppError {
 }
 
 var (
-	ErrNotFound     = &AppError{Code: "NOT_FOUND",      StatusCode: 404, Message: "resource not found"}
-	ErrUnauthorized = &AppError{Code: "UNAUTHORIZED",   StatusCode: 401, Message: "unauthorized"}
-	ErrForbidden    = &AppError{Code: "FORBIDDEN",      StatusCode: 403, Message: "forbidden"}
-	ErrInvalidInput = &AppError{Code: "INVALID_INPUT",  StatusCode: 400, Message: "invalid input"}
-	ErrConflict     = &AppError{Code: "CONFLICT",       StatusCode: 409, Message: "already exists"}
+	ErrNotFound     = &AppError{Code: "NOT_FOUND", StatusCode: 404, Message: "resource not found"}
+	ErrUnauthorized = &AppError{Code: "UNAUTHORIZED", StatusCode: 401, Message: "unauthorized"}
+	ErrForbidden    = &AppError{Code: "FORBIDDEN", StatusCode: 403, Message: "forbidden"}
+	ErrInvalidInput = &AppError{Code: "INVALID_INPUT", StatusCode: 400, Message: "invalid input"}
+	ErrConflict     = &AppError{Code: "CONFLICT", StatusCode: 409, Message: "already exists"}
 	ErrInternal     = &AppError{Code: "INTERNAL_ERROR", StatusCode: 500, Message: "internal server error"}
 )

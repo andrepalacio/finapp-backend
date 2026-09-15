@@ -2,14 +2,13 @@ package repositories
 
 import (
 	"context"
-	"errors"
+
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/andrespalacio/finapp-backend/internal/models"
 	"github.com/andrespalacio/finapp-backend/internal/repositories/sqlc"
 	"github.com/andrespalacio/finapp-backend/pkg/apperror"
-	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type WorkspaceRepository struct {
@@ -53,10 +52,7 @@ func (r *WorkspaceRepository) AddMember(ctx context.Context, workspaceID, userID
 func (r *WorkspaceRepository) GetByID(ctx context.Context, id uuid.UUID) (models.Workspace, error) {
 	row, err := r.q.GetWorkspaceByID(ctx, id)
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return models.Workspace{}, apperror.ErrNotFound
-		}
-		return models.Workspace{}, apperror.Wrap(apperror.ErrInternal, err)
+		return models.Workspace{}, mapNotFoundErr(err)
 	}
 	return toWorkspaceModel(row), nil
 }
@@ -67,10 +63,7 @@ func (r *WorkspaceRepository) GetMember(ctx context.Context, workspaceID, userID
 		UserID:      userID,
 	})
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return models.WorkspaceMember{}, apperror.ErrNotFound
-		}
-		return models.WorkspaceMember{}, apperror.Wrap(apperror.ErrInternal, err)
+		return models.WorkspaceMember{}, mapNotFoundErr(err)
 	}
 	return models.WorkspaceMember{
 		WorkspaceID: row.WorkspaceID,
@@ -109,10 +102,7 @@ func (r *WorkspaceRepository) Update(ctx context.Context, id uuid.UUID, name, cu
 		Currency: currency,
 	})
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return models.Workspace{}, apperror.ErrNotFound
-		}
-		return models.Workspace{}, apperror.Wrap(apperror.ErrInternal, err)
+		return models.Workspace{}, mapNotFoundErr(err)
 	}
 	return toWorkspaceModel(row), nil
 }
