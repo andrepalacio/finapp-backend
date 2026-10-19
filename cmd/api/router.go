@@ -1,10 +1,12 @@
 package main
 
 import (
+	"context"
 	"os"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
@@ -31,7 +33,7 @@ type handlerSet struct {
 	alert       *handlers.AlertHandler
 }
 
-func newRouter(logger *zap.Logger, redisClient *redis.Client, jwtManager *pkgauth.JWTManager, workspaceRepo *repositories.WorkspaceRepository, h handlerSet) *gin.Engine {
+func newRouter(logger *zap.Logger, pool *pgxpool.Pool, redisClient *redis.Client, jwtManager *pkgauth.JWTManager, workspaceRepo *repositories.WorkspaceRepository, h handlerSet) *gin.Engine {
 	if os.Getenv("ENV") == "production" {
 		gin.SetMode(gin.ReleaseMode)
 	}
@@ -42,6 +44,18 @@ func newRouter(logger *zap.Logger, redisClient *redis.Client, jwtManager *pkgaut
 	r.Use(gin.Recovery())
 
 	r.GET("/health", func(c *gin.Context) {
+		ctx, cancel := context.WithTimeout(c.Request.Context(), 2*time.Second)
+		defer cancel()
+		if err := pool.Ping(ctx); err != nil {
+			logger.Error("health: postgres ping failed", zap.Error(err))
+			c.JSON(503, gin.H{"status": "unhealthy", "failed": "postgres"})
+			return
+		}
+		if err := redisClient.Ping(ctx).Err(); err != nil {
+			logger.Error("health: redis ping failed", zap.Error(err))
+			c.JSON(503, gin.H{"status": "unhealthy", "failed": "redis"})
+			return
+		}
 		c.JSON(200, gin.H{"status": "ok"})
 	})
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
