@@ -99,7 +99,7 @@ func main() {
 	alertHandler := handlers.NewAlertHandler(budgetSvc)
 
 	// Router
-	r := newRouter(logger, redisClient, jwtManager, workspaceRepo, handlerSet{
+	r := newRouter(logger, pool, redisClient, jwtManager, workspaceRepo, handlerSet{
 		auth:        authHandler,
 		user:        userHandler,
 		workspace:   workspaceHandler,
